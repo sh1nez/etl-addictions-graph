@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+*.venv
+
+# Logs and debugging
+logs/
+*.log
+debug.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.iml
+
+# Pipenv and poetry
+Pipfile
+Pipfile.lock
+poetry.lock
+
+# Testing
+.coverage
+.tox/
+.nox/
+.pytest_cache/
