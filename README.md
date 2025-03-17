@@ -18,3 +18,9 @@ pip install -r ./requirements.txt
 uv init
 uv add -r requirements.txt 
 uv run src/main.py
+
+
+
+# sqllineage [github](https://github.com/reata/sqllineage)  [demo](https://reata.github.io/sqllineage/)
+source .venv/bin/activate
+sqllineage -g -f path_to_sql_file
