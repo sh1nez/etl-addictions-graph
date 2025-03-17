@@ -6,8 +6,15 @@
 
 
 # Install
-```python4
+```python
 python -m venv venv
 source venv/bin/activate
 pip install -r ./requirements.txt
 ```
+
+
+
+# Using uv package manager
+uv init
+uv add -r requirements.txt 
+uv run src/main.py
