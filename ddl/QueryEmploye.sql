@@ -27,7 +27,7 @@ WHERE salary > 50000;
 
 
 UPDATE Employee
-SET phone_number = '+79001234555'
+SET phone_number = '+79000000017'
 WHERE employee_id = 7;
 
 
