@@ -1,8 +1,9 @@
 import os
-import sqlparse
 import networkx as nx
 import matplotlib.pyplot as plt
-from typing import List
+from sqlglot import parse_one
+from collections import defaultdict
+from sqlglot.expressions import Update, Insert, Table
 
 
 class SQLAST:
@@ -10,33 +11,47 @@ class SQLAST:
 
     def __init__(self, sql_code: str):
         self.sql_code = sql_code
-        self.parsed = sqlparse.parse(sql_code)
+        self.parsed = parse_one(sql_code).walk()
         self.dependencies = self._extract_dependencies()
 
-    def _extract_dependencies(self):
+    def _extract_dependencies(self) -> defaultdict[set[Table, Table]]:
         """Извлекает зависимости между таблицами и операциями."""
-        dependencies = []
+        dependencies = defaultdict(set)
         for statement in self.parsed:
-            tables = set()
-            current_table = False
-            for token in statement.tokens:
-                if token.ttype and token.value.upper() in ('FROM', 'JOIN', 'INNER JOIN',):
-                    current_table = True
-                elif current_table:
-                    if isinstance(token, sqlparse.sql.Identifier):
-                        tables.add(token.get_name())
-                        current_table = False
-                    elif isinstance(token, sqlparse.sql.IdentifierList):
-                        for identifier in token.get_identifiers():
-                            tables.add(identifier.get_name())
-                        current_table = False
+            if not isinstance(statement, (Insert, Update)):
+                continue
+            if 'this' not in statement.args:
+                raise Exception('Unsupported structure')
+            to_table = self.get_table_name(statement)
+            from_table = self.get_first_from(statement)
+            if from_table is None:
+                from_table = 'input'
+            else:
+                from_table = self.get_table_name(from_table)
+            
+            dependencies[to_table].add(from_table)
 
-            if len(tables) > 1:
-                dependencies.append(list(tables))
         return dependencies
 
-    def get_dependencies(self):
+    def get_dependencies(self)  -> defaultdict[set[Table, Table]]:
         return self.dependencies
+    
+    def get_first_from(self, stmt) -> Table:
+        if 'from' in stmt.args:
+            return stmt.args['from']
+
+        if 'expression' in stmt.args:
+            return self.get_first_from(stmt.expression)
+
+        return None
+
+    def get_table_name(self, parsed) -> Table:
+        while 'this' in parsed.args:
+            if isinstance(parsed, Table):
+                return parsed.this.this
+            parsed = parsed.this
+
+        raise Exception('No table found')
 
 
 class DirectoryParser:
@@ -53,7 +68,7 @@ class DirectoryParser:
                 if file.endswith(".sql"):
                     with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
                         sql_code = f.read()
-                        ast = self.sql_ast(sql_code)
+                        ast = self.sql_ast(sql_code) # TODO
                         self.graph.add_dependencies(ast.get_dependencies())
 
 
@@ -63,12 +78,11 @@ class DependencyGraph:
     def __init__(self):
         self.graph = nx.DiGraph()
 
-    def add_dependencies(self, dependencies: List[List[str]]):
+    def add_dependencies(self, dependencies: defaultdict[set[Table, Table]]):
         """Добавляет зависимости в граф."""
-        for dep in dependencies:
-            if len(dep) > 1:
-                for i in range(len(dep) - 1):
-                    self.graph.add_edge(dep[i], dep[i + 1])
+        for k, v in dependencies.items():
+            for i in v:
+                self.graph.add_edge(i, k)
 
     def visualize(self):
         """Визуализирует граф зависимостей."""
@@ -103,7 +117,11 @@ if choice.lower() == 'y':
     ast = SQLAST(sql_code)
     graph.add_dependencies(ast.get_dependencies())
 else:
+    # unite = False
+    # choice = input("Объединить информацию из всех файлов? (y/n): ")
+    # if choice.lower() == 'y':
+    #     unite = True
     parser = DirectoryParser(SQLAST, graph)
-    parser.parse_directory("./sql_files")
+    parser.parse_directory("./dml")
 
 graph.visualize()
