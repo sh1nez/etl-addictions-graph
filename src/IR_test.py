@@ -1,8 +1,10 @@
 import os
-import sqlparse
 import networkx as nx
 import matplotlib.pyplot as plt
-from typing import List
+from sqlglot import parse
+from collections import defaultdict
+from sqlglot.expressions import Update, Insert, Table
+from typing import Optional
 
 
 class SQLAST:
@@ -10,33 +12,48 @@ class SQLAST:
 
     def __init__(self, sql_code: str):
         self.sql_code = sql_code
-        self.parsed = sqlparse.parse(sql_code)
+        self.parsed = parse(sql_code)
         self.dependencies = self._extract_dependencies()
 
-    def _extract_dependencies(self):
+    def _extract_dependencies(self) -> defaultdict[set[Table, Table]]:
         """Извлекает зависимости между таблицами и операциями."""
-        dependencies = []
+        dependencies = defaultdict(set)
         for statement in self.parsed:
-            tables = set()
-            current_table = False
-            for token in statement.tokens:
-                if token.ttype and token.value.upper() in ('FROM', 'JOIN', 'INNER JOIN',):
-                    current_table = True
-                elif current_table:
-                    if isinstance(token, sqlparse.sql.Identifier):
-                        tables.add(token.get_name())
-                        current_table = False
-                    elif isinstance(token, sqlparse.sql.IdentifierList):
-                        for identifier in token.get_identifiers():
-                            tables.add(identifier.get_name())
-                        current_table = False
+            for sub_statement in statement.walk():
+                if not isinstance(sub_statement, (Insert, Update)):
+                    continue
+                if 'this' not in sub_statement.args:
+                    raise Exception('Unsupported structure')
+                to_table = self.get_table_name(sub_statement)
+                from_table = self.get_first_from(sub_statement)
+                if from_table is None:
+                    from_table = 'input'
+                else:
+                    from_table = self.get_table_name(from_table)
 
-            if len(tables) > 1:
-                dependencies.append(list(tables))
+                dependencies[to_table].add(from_table)
+
         return dependencies
 
-    def get_dependencies(self):
+    def get_dependencies(self)  -> defaultdict[set[Table, Table]]:
         return self.dependencies
+
+    def get_first_from(self, stmt) -> Table:
+        if 'from' in stmt.args:
+            return stmt.args['from']
+
+        if 'expression' in stmt.args:
+            return self.get_first_from(stmt.expression)
+
+        return None
+
+    def get_table_name(self, parsed) -> Table:
+        while 'this' in parsed.args:
+            if isinstance(parsed, Table):
+                return parsed.this.this
+            parsed = parsed.this
+
+        raise Exception('No table found')
 
 
 class DirectoryParser:
@@ -55,6 +72,18 @@ class DirectoryParser:
                         sql_code = f.read()
                         ast = self.sql_ast(sql_code)
                         self.graph.add_dependencies(ast.get_dependencies())
+    
+    def separate_parse(self, directory: str):
+        """Парсит поочерёдно все SQL-файлы в указанной директории в отдельные графы и отображает их.(для тестирования)"""
+        for root, _, files in os.walk(directory):
+            for file in files:
+                if file.endswith(".sql"):
+                    with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
+                        one_graph = DependencyGraph()
+                        sql_code = f.read()
+                        ast = self.sql_ast(sql_code)
+                        one_graph.add_dependencies(ast.get_dependencies())
+                        one_graph.visualize(file)
 
 
 class DependencyGraph:
@@ -63,14 +92,13 @@ class DependencyGraph:
     def __init__(self):
         self.graph = nx.DiGraph()
 
-    def add_dependencies(self, dependencies: List[List[str]]):
+    def add_dependencies(self, dependencies: defaultdict[set[Table, Table]]):
         """Добавляет зависимости в граф."""
-        for dep in dependencies:
-            if len(dep) > 1:
-                for i in range(len(dep) - 1):
-                    self.graph.add_edge(dep[i], dep[i + 1])
+        for k, v in dependencies.items():
+            for i in v:
+                self.graph.add_edge(i, k)
 
-    def visualize(self):
+    def visualize(self, title:Optional[str] = None):
         """Визуализирует граф зависимостей."""
         if not self.graph.nodes:
             print("Граф пуст, нет зависимостей для отображения.")
@@ -80,6 +108,8 @@ class DependencyGraph:
         pos = nx.spring_layout(self.graph)
         nx.draw(self.graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', font_size=10,
                 node_size=2000)
+        if title is not None:
+            plt.gcf().canvas.manager.set_window_title(f'DML FILE {title}')
         plt.show()
 
 
@@ -104,6 +134,11 @@ if choice.lower() == 'y':
     graph.add_dependencies(ast.get_dependencies())
 else:
     parser = DirectoryParser(SQLAST, graph)
-    parser.parse_directory("./sql_files")
+    choice = input("Вывести графы зависимости отдельно для каждого файла? (y/n): ")
+    if choice.lower() == 'y':
+        parser.separate_parse("./dml")
+    else:
+        parser.parse_directory("./dml")
 
 graph.visualize()
+
