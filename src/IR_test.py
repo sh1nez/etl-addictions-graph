@@ -1,7 +1,7 @@
 import os
 import networkx as nx
 import matplotlib.pyplot as plt
-from sqlglot import parse_one
+from sqlglot import parse
 from collections import defaultdict
 from sqlglot.expressions import Update, Insert, Table
 
@@ -11,31 +11,32 @@ class SQLAST:
 
     def __init__(self, sql_code: str):
         self.sql_code = sql_code
-        self.parsed = parse_one(sql_code).walk()
+        self.parsed = parse(sql_code)
         self.dependencies = self._extract_dependencies()
 
     def _extract_dependencies(self) -> defaultdict[set[Table, Table]]:
         """Извлекает зависимости между таблицами и операциями."""
         dependencies = defaultdict(set)
         for statement in self.parsed:
-            if not isinstance(statement, (Insert, Update)):
-                continue
-            if 'this' not in statement.args:
-                raise Exception('Unsupported structure')
-            to_table = self.get_table_name(statement)
-            from_table = self.get_first_from(statement)
-            if from_table is None:
-                from_table = 'input'
-            else:
-                from_table = self.get_table_name(from_table)
-            
-            dependencies[to_table].add(from_table)
+            for sub_statement in statement.walk():
+                if not isinstance(sub_statement, (Insert, Update)):
+                    continue
+                if 'this' not in sub_statement.args:
+                    raise Exception('Unsupported structure')
+                to_table = self.get_table_name(sub_statement)
+                from_table = self.get_first_from(sub_statement)
+                if from_table is None:
+                    from_table = 'input'
+                else:
+                    from_table = self.get_table_name(from_table)
+
+                dependencies[to_table].add(from_table)
 
         return dependencies
 
     def get_dependencies(self)  -> defaultdict[set[Table, Table]]:
         return self.dependencies
-    
+
     def get_first_from(self, stmt) -> Table:
         if 'from' in stmt.args:
             return stmt.args['from']
@@ -125,3 +126,4 @@ else:
     parser.parse_directory("./dml")
 
 graph.visualize()
+
