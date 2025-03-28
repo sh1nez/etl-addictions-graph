@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from sqlglot import parse
 from collections import defaultdict
 from sqlglot.expressions import Update, Insert, Table
+from typing import Optional
 
 
 class SQLAST:
@@ -69,8 +70,20 @@ class DirectoryParser:
                 if file.endswith(".sql"):
                     with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
                         sql_code = f.read()
-                        ast = self.sql_ast(sql_code) # TODO
+                        ast = self.sql_ast(sql_code)
                         self.graph.add_dependencies(ast.get_dependencies())
+    
+    def separate_parse(self, directory: str):
+        """Парсит поочерёдно все SQL-файлы в указанной директории в отдельные графы и отображает их.(для тестирования)"""
+        for root, _, files in os.walk(directory):
+            for file in files:
+                if file.endswith(".sql"):
+                    with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
+                        one_graph = DependencyGraph()
+                        sql_code = f.read()
+                        ast = self.sql_ast(sql_code)
+                        one_graph.add_dependencies(ast.get_dependencies())
+                        one_graph.visualize(file)
 
 
 class DependencyGraph:
@@ -85,7 +98,7 @@ class DependencyGraph:
             for i in v:
                 self.graph.add_edge(i, k)
 
-    def visualize(self):
+    def visualize(self, title:Optional[str] = None):
         """Визуализирует граф зависимостей."""
         if not self.graph.nodes:
             print("Граф пуст, нет зависимостей для отображения.")
@@ -95,6 +108,8 @@ class DependencyGraph:
         pos = nx.spring_layout(self.graph)
         nx.draw(self.graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', font_size=10,
                 node_size=2000)
+        if title is not None:
+            plt.gcf().canvas.manager.set_window_title(f'DML FILE {title}')
         plt.show()
 
 
@@ -118,12 +133,12 @@ if choice.lower() == 'y':
     ast = SQLAST(sql_code)
     graph.add_dependencies(ast.get_dependencies())
 else:
-    # unite = False
-    # choice = input("Объединить информацию из всех файлов? (y/n): ")
-    # if choice.lower() == 'y':
-    #     unite = True
     parser = DirectoryParser(SQLAST, graph)
-    parser.parse_directory("./dml")
+    choice = input("Вывести графы зависимости отдельно для каждого файла? (y/n): ")
+    if choice.lower() == 'y':
+        parser.separate_parse("./dml")
+    else:
+        parser.parse_directory("./dml")
 
 graph.visualize()
 
