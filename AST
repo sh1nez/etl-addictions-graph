@@ -1,0 +1,33 @@
+import sqlparse
+
+def extract_table_relationships(sql):
+    """Разбирает SQL-запрос и находит связи между таблицами в INSERT и UPDATE."""
+    parsed = sqlparse.parse(sql)
+    relationships = []
+    
+    for statement in parsed:
+        tokens = list(statement.tokens)
+        table_name = None
+        source_table = None
+        
+        # Проверяем, является ли запрос INSERT
+        if statement.get_type() == 'INSERT':
+            for i, token in enumerate(tokens):
+                if token.value.upper() == 'INTO':  # Ищем ключевое слово INTO
+                    table_name = tokens[i + 1].get_real_name()
+                elif token.value.upper() == 'SELECT':  # Ищем SELECT (источник данных)
+                    source_table = tokens[i + 2].get_real_name()
+        
+        # Проверяем, является ли запрос UPDATE
+        elif statement.get_type() == 'UPDATE':
+            for i, token in enumerate(tokens):
+                if token.value.upper() == 'UPDATE':  # Ищем UPDATE (основная таблица)
+                    table_name = tokens[i + 1].get_real_name()
+                elif token.value.upper() in ('FROM', 'JOIN'):  # Ищем FROM или JOIN (связь)
+                    source_table = tokens[i + 1].get_real_name()
+        
+        # Добавляем связь, если найдены обе таблицы
+        if table_name and source_table:
+            relationships.append((table_name, source_table))
+    
+    return relationships
