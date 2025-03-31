@@ -20,6 +20,10 @@ class SQLAST:
         """Извлекает зависимости между таблицами и операциями."""
         dependencies = defaultdict(set)
         for statement in self.parsed:
+
+            if statement is None:
+                continue
+
             for sub_statement in statement.walk():
                 if not isinstance(sub_statement, (Insert, Update)):
                     continue
@@ -67,7 +71,7 @@ class SQLTransactionParser:
         Args:
             sql_code (str): SQL-код для разбиения на транзакции
         """
-        self.sql_code = sql_code
+        self.sql_code = sql_code.strip() if sql_code else ""
         self.transactions = self._split_transactions()
 
     def _split_transactions(self) -> List[str]:
@@ -77,11 +81,25 @@ class SQLTransactionParser:
         Returns:
             List[str]: Список строк, каждая из которых представляет отдельную транзакцию
         """
+        # Проверка на пустой код
+        if not self.sql_code:
+            return []
+
         # Если код содержит явные транзакции (BEGIN...COMMIT)
         if "BEGIN" in self.sql_code.upper() and "COMMIT" in self.sql_code.upper():
             # Разделяем по BEGIN...COMMIT
             transactions = []
             code = self.sql_code
+            last_position = 0
+
+            # Проверяем, есть ли код до первого BEGIN
+            first_begin = code.upper().find("BEGIN")
+            if first_begin > 0:
+                pre_code = code[:first_begin].strip()
+                if pre_code:
+                    # Разбиваем код до первого BEGIN по точке с запятой
+                    for stmt in [s.strip() for s in pre_code.split(';') if s.strip()]:
+                        transactions.append(stmt + ';')
 
             while "BEGIN" in code.upper():
                 begin_index = code.upper().find("BEGIN")
@@ -95,12 +113,19 @@ class SQLTransactionParser:
 
                 # Добавляем транзакцию (включая COMMIT)
                 transaction = code[begin_index:commit_index + len("COMMIT")]
-                transactions.append(transaction)
+                if transaction.strip():  # Проверка, что транзакция не пустая
+                    transactions.append(transaction)
 
                 # Переходим к следующей части кода
-                code = code[commit_index + len("COMMIT"):]
+                last_position = commit_index + len("COMMIT")
+                code = code[last_position:]
 
-            # Если есть код до первого BEGIN или после последнего COMMIT, обрабатываем его как отдельные транзакции
+            # Проверяем, есть ли код после последнего COMMIT
+            if last_position < len(self.sql_code) and code.strip():
+                # Разбиваем код после последнего COMMIT по точке с запятой
+                for stmt in [s.strip() for s in code.split(';') if s.strip()]:
+                    transactions.append(stmt + ';')
+
             if transactions:
                 return transactions
 
@@ -141,6 +166,10 @@ class DirectoryParser:
 
     def separate_parse(self, directory: str):
         """Парсит поочерёдно все SQL-файлы в указанной директории в отдельные графы и отображает их.(для тестирования)"""
+        if not os.path.exists(directory):
+            print(f"Директория {directory} не существует.")
+            return
+
         for root, _, files in os.walk(directory):
             for file in files:
                 if file.endswith(".sql"):
