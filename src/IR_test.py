@@ -1,10 +1,11 @@
 import os
-import networkx as nx
-import matplotlib.pyplot as plt
-from sqlglot import parse
 from collections import defaultdict
-from sqlglot.expressions import Update, Insert, Table
-from typing import Optional
+from typing import List, Optional
+
+import matplotlib.pyplot as plt
+import networkx as nx
+from sqlglot import parse
+from sqlglot.expressions import Insert, Table, Update
 
 
 class SQLAST:
@@ -56,10 +57,71 @@ class SQLAST:
         raise Exception('No table found')
 
 
+class SQLTransactionParser:
+    """Класс для разбиения SQL-кода на транзакции."""
+
+    def __init__(self, sql_code: str):
+        """
+        Инициализирует парсер транзакций.
+
+        Args:
+            sql_code (str): SQL-код для разбиения на транзакции
+        """
+        self.sql_code = sql_code
+        self.transactions = self._split_transactions()
+
+    def _split_transactions(self) -> List[str]:
+        """
+        Разбивает SQL-код на транзакции.
+
+        Returns:
+            List[str]: Список строк, каждая из которых представляет отдельную транзакцию
+        """
+        # Если код содержит явные транзакции (BEGIN...COMMIT)
+        if "BEGIN" in self.sql_code.upper() and "COMMIT" in self.sql_code.upper():
+            # Разделяем по BEGIN...COMMIT
+            transactions = []
+            code = self.sql_code
+
+            while "BEGIN" in code.upper():
+                begin_index = code.upper().find("BEGIN")
+                # Найти соответствующий COMMIT
+                commit_index = code.upper().find("COMMIT", begin_index)
+
+                if commit_index == -1:
+                    # Если COMMIT не найден, берем весь оставшийся код
+                    transactions.append(code[begin_index:])
+                    break
+
+                # Добавляем транзакцию (включая COMMIT)
+                transaction = code[begin_index:commit_index + len("COMMIT")]
+                transactions.append(transaction)
+
+                # Переходим к следующей части кода
+                code = code[commit_index + len("COMMIT"):]
+
+            # Если есть код до первого BEGIN или после последнего COMMIT, обрабатываем его как отдельные транзакции
+            if transactions:
+                return transactions
+
+        # Если явных транзакций нет или не удалось разбить по BEGIN...COMMIT, разбиваем по точке с запятой
+        statements = [stmt.strip() for stmt in self.sql_code.split(';') if stmt.strip()]
+        return [stmt + ';' for stmt in statements]
+
+    def get_transactions(self) -> List[str]:
+        """
+        Возвращает список транзакций.
+
+        Returns:
+            List[str]: Список транзакций
+        """
+        return self.transactions
+
+
 class DirectoryParser:
     """Класс для обработки SQL-файлов в директории."""
 
-    def __init__(self, sql_ast: SQLAST, graph):
+    def __init__(self, sql_ast, graph):
         self.sql_ast = sql_ast
         self.graph = graph
 
@@ -70,9 +132,13 @@ class DirectoryParser:
                 if file.endswith(".sql"):
                     with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
                         sql_code = f.read()
-                        ast = self.sql_ast(sql_code)
-                        self.graph.add_dependencies(ast.get_dependencies())
-    
+                        transaction_parser = SQLTransactionParser(sql_code)
+                        transactions = transaction_parser.get_transactions()
+
+                        for transaction in transactions:
+                            ast = self.sql_ast(transaction)
+                            self.graph.add_dependencies(ast.get_dependencies())
+
     def separate_parse(self, directory: str):
         """Парсит поочерёдно все SQL-файлы в указанной директории в отдельные графы и отображает их.(для тестирования)"""
         for root, _, files in os.walk(directory):
@@ -81,8 +147,13 @@ class DirectoryParser:
                     with open(os.path.join(root, file), 'r', encoding='utf-8') as f:
                         one_graph = DependencyGraph()
                         sql_code = f.read()
-                        ast = self.sql_ast(sql_code)
-                        one_graph.add_dependencies(ast.get_dependencies())
+                        transaction_parser = SQLTransactionParser(sql_code)
+                        transactions = transaction_parser.get_transactions()
+
+                        for transaction in transactions:
+                            ast = self.sql_ast(transaction)
+                            one_graph.add_dependencies(ast.get_dependencies())
+
                         one_graph.visualize(file)
 
 
@@ -141,4 +212,3 @@ else:
         parser.parse_directory("./dml")
 
 graph.visualize()
-
