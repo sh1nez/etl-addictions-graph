@@ -43,7 +43,7 @@ class SQLAST:
     def get_dependencies(self)  -> defaultdict[set[Table, Table]]:
         return self.dependencies
 
-    def get_first_from(self, stmt) -> Table:
+    def get_first_from(self, stmt) -> Optional[Table]:
         if 'from' in stmt.args:
             return stmt.args['from']
 
