@@ -3,28 +3,33 @@ import networkx as nx
 from collections import defaultdict
 from typing import Optional, Tuple, List
 from matplotlib import pyplot as plt
-from sql_corrector import SQLSyntaxCorrector, EnhancedSQLCorrector
 from sqlglot import parse, transpile
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select
-HAS_SQLGLOT=True
+HAS_SQLGLOT = True
+
 
 class GraphStorage:
     """Class for storing dependency graph data."""
+
     def __init__(self):
         self.nodes = set()
         self.edges = []
+
     def add_dependencies(self, dependencies: defaultdict):
         for to_table, from_tables in dependencies.items():
             self.nodes.add(to_table)
             for from_table in from_tables:
                 self.nodes.add(from_table)
                 self.edges.append((from_table, to_table))
+
     def clear(self):
         self.nodes.clear()
         self.edges.clear()
 
+
 class GraphVisualizer:
     """Class for visualizing dependency graphs."""
+
     def render(self, storage: GraphStorage, title: Optional[str] = None):
         if not storage.nodes:
             print("Graph is empty, no dependencies to display.")
@@ -42,12 +47,13 @@ class GraphVisualizer:
             plt.show()
         except Exception as e:
             print(f"Error visualizing graph: {e}")
-            print("You may need to run this in an environment that supports matplotlib display.")
-
+            print(
+                "You may need to run this in an environment that supports matplotlib display.")
 
 
 class SQLAST:
     """Class for building AST of SQL queries."""
+
     def __init__(self, sql_code: str):
         # self.corrector = EnhancedSQLCorrector()
         if not sql_code or not isinstance(sql_code, str):
@@ -58,7 +64,7 @@ class SQLAST:
             self.dependencies = defaultdict(set)
             return
         self.corrections = []
-        self.sql_code= sql_code
+        self.sql_code = sql_code
         self.corrected_sql = self.sql_code
         self.dependencies = defaultdict(set)
         # self.corrected_sql, self.corrections = self.corrector.correct(sql_code)
@@ -66,7 +72,8 @@ class SQLAST:
         if not HAS_SQLGLOT:
             self.parsed = None
             self.dependencies = defaultdict(set)
-            self.corrections.append("sqlglot not installed - dependency extraction skipped")
+            self.corrections.append(
+                "sqlglot not installed - dependency extraction skipped")
             return
         try:
             self.parsed = parse(self.corrected_sql)
@@ -76,6 +83,7 @@ class SQLAST:
             self.parsed = None
             self.dependencies = defaultdict(set)
             self.corrections.append(f"Error parsing SQL: {str(e)}")
+
     def _extract_dependencies(self) -> defaultdict:
         """Extracts dependencies between tables and operations including ETL and SELECT queries."""
         dependencies = defaultdict(set)
@@ -90,7 +98,8 @@ class SQLAST:
                             continue
                         try:
                             to_table = self.get_table_name(sub_statement)
-                            from_table = self.get_first_from(sub_statement) or 'input'
+                            from_table = self.get_first_from(
+                                sub_statement) or 'input'
                             dependencies[to_table].add(from_table)
                         except Exception as e:
                             print(f"Error extracting dependencies: {e}")
@@ -98,25 +107,33 @@ class SQLAST:
                         # Если есть конструкция INTO, обрабатываем как SELECT INTO
                         if hasattr(sub_statement, 'into') and sub_statement.into is not None:
                             try:
-                                to_table = self.get_table_name(sub_statement.into)
-                                from_table = self.get_first_from(sub_statement) or 'input'
+                                to_table = self.get_table_name(
+                                    sub_statement.into)
+                                from_table = self.get_first_from(
+                                    sub_statement) or 'input'
                                 dependencies[to_table].add(from_table)
                             except Exception as e:
-                                print(f"Error extracting SELECT INTO dependencies: {e}")
+                                print(
+                                    f"Error extracting SELECT INTO dependencies: {e}")
                         else:
                             # Для обычного SELECT, считаем целевым псевдо-таблицу "result"
                             try:
-                                from_table = self.get_first_from(sub_statement) or 'input'
+                                from_table = self.get_first_from(
+                                    sub_statement) or 'input'
                                 dependencies["result"].add(from_table)
                             except Exception as e:
-                                print(f"Error extracting SELECT dependency: {e}")
+                                print(
+                                    f"Error extracting SELECT dependency: {e}")
         except Exception as e:
             print(f"Error in dependency extraction: {e}")
         return dependencies
+
     def get_dependencies(self) -> defaultdict:
         return self.dependencies
+
     def get_corrections(self) -> List[str]:
         return self.corrections
+
     def get_first_from(self, stmt) -> Optional[str]:
         if not HAS_SQLGLOT:
             return None
@@ -128,6 +145,7 @@ class SQLAST:
         except Exception as e:
             print(f"Error in get_first_from: {e}")
         return None
+
     def get_table_name(self, parsed) -> str:
         if not HAS_SQLGLOT:
             return "unknown"
@@ -143,10 +161,13 @@ class SQLAST:
             print(f"Error in get_table_name: {e}")
             return "unknown"
 
+
 class DirectoryParser:
     """Class for processing SQL files in a directory."""
+
     def __init__(self, sql_ast_cls):
         self.sql_ast_cls = sql_ast_cls
+
     def parse_directory(self, directory: str) -> List[Tuple[defaultdict, List[str], str]]:
         results = []
         if not os.path.exists(directory):
@@ -166,22 +187,28 @@ class DirectoryParser:
                         with open(file_path, 'r', encoding='utf-8') as f:
                             sql_code = f.read()
                             ast = self.sql_ast_cls(sql_code)
-                            results.append((ast.get_dependencies(), ast.get_corrections(), file_path))
+                            results.append(
+                                (ast.get_dependencies(), ast.get_corrections(), file_path))
                     except Exception as e:
                         print(f"Error processing file {file_path}: {e}")
-                        results.append((defaultdict(set), [f"Error: {str(e)}"], file_path))
+                        results.append(
+                            (defaultdict(set), [f"Error: {str(e)}"], file_path))
         return results
+
 
 class GraphManager:
     """Class for managing graph building and visualization components."""
+
     def __init__(self):
         self.storage = GraphStorage()
         self.visualizer = GraphVisualizer()
         self.parser = DirectoryParser(SQLAST)
+
     def process_sql(self, sql_code: str) -> List[str]:
         ast = SQLAST(sql_code)
         self.storage.add_dependencies(ast.get_dependencies())
         return ast.get_corrections()
+
     def process_directory(self, directory_path: str) -> List[Tuple[str, List[str]]]:
         results = []
         parse_results = self.parser.parse_directory(directory_path)
@@ -189,8 +216,10 @@ class GraphManager:
             self.storage.add_dependencies(dependencies)
             results.append((file_path, corrections))
         return results
+
     def visualize(self, title: Optional[str] = None):
         self.visualizer.render(self.storage, title)
+
 
 def main():
     manager = GraphManager()
@@ -225,7 +254,8 @@ def main():
                         print(f"{i}. {correction}")
                 temp_storage = GraphStorage()
                 temp_storage.add_dependencies(dependencies)
-                manager.visualizer.render(temp_storage, f"Dependencies for {os.path.basename(file_path)}")
+                manager.visualizer.render(temp_storage, f"Dependencies for {
+                                          os.path.basename(file_path)}")
         else:
             results = manager.process_directory(directory)
             for file_path, corrections in results:
@@ -235,6 +265,7 @@ def main():
                     for i, correction in enumerate(corrections, 1):
                         print(f"{i}. {correction}")
             manager.visualize("Full Dependencies Graph")
+
 
 if __name__ == "__main__":
     main()
