@@ -132,6 +132,7 @@ class GraphManager:
     def visualize(self, title: Optional[str] = None):
         self.visualizer.render(self.storage, title)
 
+
 def load_sql_code():
     """Позволяет пользователю ввести SQL-код вручную."""
     print("Введите SQL-код (для завершения введите пустую строку):")
