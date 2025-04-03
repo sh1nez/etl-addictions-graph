@@ -5,7 +5,7 @@ from typing import Optional, Tuple, List
 from matplotlib import pyplot as plt
 from sqlglot import parse, transpile
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select
-HAS_SQLGLOT = True
+HAS_SQLGLOT = True  # TODO remove it
 
 
 class GraphStorage:
@@ -51,7 +51,7 @@ class GraphVisualizer:
                 "You may need to run this in an environment that supports matplotlib display.")
 
 
-class SQLAST:
+class SqlAst:
     """Class for building AST of SQL queries."""
 
     def __init__(self, sql_code: str):
@@ -169,7 +169,7 @@ class DirectoryParser:
         self.sql_ast_cls = sql_ast_cls
 
     def parse_directory(self, directory: str) -> List[Tuple[defaultdict, List[str], str]]:
-        results = []
+        results = []  # maybe hashmap better??
         if not os.path.exists(directory):
             print(f"Error: Directory {directory} does not exist!")
             return results
@@ -183,7 +183,7 @@ class DirectoryParser:
                 if file.endswith(".sql"):
                     file_path = os.path.join(root, file)
                     print(f"Reading file: {file_path}")
-                    try:
+                    try:  # TODO with заменяет трай кетч блок, насколько я знаю, заменить
                         with open(file_path, 'r', encoding='utf-8') as f:
                             sql_code = f.read()
                             ast = self.sql_ast_cls(sql_code)
@@ -202,15 +202,15 @@ class GraphManager:
     def __init__(self):
         self.storage = GraphStorage()
         self.visualizer = GraphVisualizer()
-        self.parser = DirectoryParser(SQLAST)
+        self.parser = DirectoryParser(SqlAst)
 
     def process_sql(self, sql_code: str) -> List[str]:
-        ast = SQLAST(sql_code)
+        ast = SqlAst(sql_code)
         self.storage.add_dependencies(ast.get_dependencies())
         return ast.get_corrections()
 
     def process_directory(self, directory_path: str) -> List[Tuple[str, List[str]]]:
-        results = []
+        results = []  # maybe hashmap better??
         parse_results = self.parser.parse_directory(directory_path)
         for dependencies, corrections, file_path in parse_results:
             self.storage.add_dependencies(dependencies)
