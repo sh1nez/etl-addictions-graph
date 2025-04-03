@@ -273,9 +273,7 @@ def main():
                         print(f"{i}. {correction}")
                 temp_storage = GraphStorage()
                 temp_storage.add_dependencies(dependencies)
-                manager.visualizer.render(
-                    temp_storage, f"Dependencies for {os.path.basename(file_path)}"
-                )
+                manager.visualizer.render(temp_storage, f"Dependencies for {os.path.basename(file_path)}")
         else:
             results = manager.process_directory(directory)
             for file_path, corrections in results:
