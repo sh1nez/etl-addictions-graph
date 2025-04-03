@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 23.3.0  # Use your desired version
+    rev: 23.3.0
     hooks:
       - id: black
         types: [python]
@@ -9,3 +9,7 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
+  - repo: https://github.com/opensource-nepal/commitlint
+    rev: v1.2.0
+    hooks:
+      - id: commitlint
