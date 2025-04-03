@@ -1,6 +1,6 @@
 -- Вставка новых клиентов из внешней базы
 INSERT INTO customers (customer_id, name, email)
-SELECT 
+SELECT
     e.external_id,
     e.customer_name,
     e.email_address

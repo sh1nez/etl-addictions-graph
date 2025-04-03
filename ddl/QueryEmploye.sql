@@ -16,13 +16,13 @@ INSERT INTO Employee (employee_id, first_name, last_name, birth_date, hire_date,
 (15, 'Mikhail', 'Sokolov', '1983-10-30', '2012-08-01', 'Главный по снаряжению', 69000.00, '+79000000016', 'mikhail@pigeonfarm.com', 'Пермь, пр. Снарядный 29', 3, 'Логистика', 11);
 
 
-SELECT * 
-FROM Employee 
+SELECT *
+FROM Employee
 WHERE department = 'Тренировка';
 
 
-SELECT first_name, position 
-FROM Employee 
+SELECT first_name, position
+FROM Employee
 WHERE salary > 50000;
 
 
@@ -31,26 +31,26 @@ SET phone_number = '+79000000017'
 WHERE employee_id = 7;
 
 
-DELETE FROM Employee 
+DELETE FROM Employee
 WHERE position = 'Стажер тренера';
 
 
-SELECT first_name, last_name, hire_date 
-FROM Employee 
+SELECT first_name, last_name, hire_date
+FROM Employee
 WHERE hire_date BETWEEN '2023-01-01' AND '2023-12-31';
 
 
-SELECT COUNT(*) AS total_employees 
+SELECT COUNT(*) AS total_employees
 FROM Employee;
 
 
-SELECT first_name, last_name, hire_date 
-FROM Employee 
-ORDER BY hire_date DESC 
+SELECT first_name, last_name, hire_date
+FROM Employee
+ORDER BY hire_date DESC
 LIMIT 3;
 
 
-SELECT 
+SELECT
     e.first_name,
     e.last_name,
     e.salary,
@@ -58,7 +58,7 @@ SELECT
     dep_avg.avg_salary
 FROM Employee e
 JOIN (
-    SELECT 
+    SELECT
         department,
         AVG(salary) AS avg_salary
     FROM Employee
@@ -67,19 +67,19 @@ JOIN (
 WHERE e.salary > dep_avg.avg_salary;
 
 
-SELECT * 
-FROM Employee 
+SELECT *
+FROM Employee
 WHERE first_name = 'Anna';
 
 
-SELECT DISTINCT position 
-FROM Employee 
+SELECT DISTINCT position
+FROM Employee
 ORDER BY position ASC;
 
 
 SELECT *
 FROM (
-    SELECT 
+    SELECT
         *,
         RANK() OVER (PARTITION BY department ORDER BY experience_years DESC) AS rank
     FROM Employee
@@ -92,11 +92,11 @@ SET address = 'Москва, ул. Новая 10'
 WHERE address LIKE 'Москва%';
 
 
-DELETE FROM Employee 
+DELETE FROM Employee
 WHERE salary < 40000;
 
 
-SELECT 
+SELECT
     email,
     COUNT(*) AS duplicates
 FROM Employee
@@ -104,8 +104,8 @@ GROUP BY email
 HAVING COUNT(*) > 1;
 
 
-SELECT last_name, birth_date 
-FROM Employee 
+SELECT last_name, birth_date
+FROM Employee
 WHERE birth_date < CURRENT_DATE - INTERVAL '40 years';
 
 
@@ -116,9 +116,8 @@ WHERE department = 'Тренировка'
 
 
 UPDATE Employee
-SET 
+SET
     position = 'Тренер по полетам',
     department = 'Тренировка'
 WHERE position = 'Младший тренер'
   AND experience_years > 2;
-

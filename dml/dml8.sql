@@ -6,7 +6,7 @@ WHERE products.product_id = inventory.product_id;
 
 -- Вставка новых товаров из inventory, которых нет в products
 INSERT INTO products (product_id, name, stock)
-SELECT 
+SELECT
     i.product_id,
     i.product_name,
     i.quantity

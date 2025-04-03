@@ -6,7 +6,6 @@ __all__ = []
 
 
 class TestSqlInput:
-
     def test_graph_manager_process_sql_incorrect_sql_query_corrections(self):
         manager = src.main.GraphManager()
         corrections = manager.process_sql(
@@ -20,9 +19,7 @@ class TestSqlInput:
 
     def test_graph_manager_process_sql_incorrect_sql_query_storage_empty(self):
         manager = src.main.GraphManager()
-        manager.process_sql(
-            "INSERT ONTO invalid_table VALUES ('unclosed_quote');"
-        )
+        manager.process_sql("INSERT ONTO invalid_table VALUES ('unclosed_quote');")
         graph_storage = (manager.storage.nodes, manager.storage.edges)
 
         assert graph_storage[0] == set()
@@ -58,8 +55,8 @@ class TestSqlInput:
         assert error_message in captured.out
 
     def test_graph_manager_process_directory_dir_path_not_a_dir_path(
-            self,
-            capsys,
+        self,
+        capsys,
     ):
         dir_path = BASE_DIR / "ddl/Employee.ddl"
         manager = src.main.GraphManager()
