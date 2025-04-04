@@ -173,6 +173,88 @@ class SqlAst:
             return "unknown"
 
 
+class SQLTransactionParser:
+    """Класс для разбиения SQL-кода на транзакции."""
+
+    def __init__(self, sql_code: str):
+        """
+        Инициализирует парсер транзакций.
+
+        Args:
+            sql_code (str): SQL-код для разбиения на транзакции
+        """
+        self.sql_code = sql_code.strip() if sql_code else ""
+        self.transactions = self._split_transactions()
+
+    def _split_transactions(self) -> List[str]:
+        """
+        Разбивает SQL-код на транзакции.
+
+        Returns:
+            List[str]: Список строк, каждая из которых представляет отдельную транзакцию
+        """
+        # Проверка на пустой код
+        if not self.sql_code:
+            return []
+
+        # Если код содержит явные транзакции (BEGIN...COMMIT)
+        if "BEGIN" in self.sql_code.upper() and "COMMIT" in self.sql_code.upper():
+            # Разделяем по BEGIN...COMMIT
+            transactions = []
+            code = self.sql_code
+            last_position = 0
+
+            # Проверяем, есть ли код до первого BEGIN
+            first_begin = code.upper().find("BEGIN")
+            if first_begin > 0:
+                pre_code = code[:first_begin].strip()
+                if pre_code:
+                    # Разбиваем код до первого BEGIN по точке с запятой
+                    for stmt in [s.strip() for s in pre_code.split(';') if s.strip()]:
+                        transactions.append(stmt + ';')
+
+            while "BEGIN" in code.upper():
+                begin_index = code.upper().find("BEGIN")
+                # Найти соответствующий COMMIT
+                commit_index = code.upper().find("COMMIT", begin_index)
+
+                if commit_index == -1:
+                    # Если COMMIT не найден, берем весь оставшийся код
+                    transactions.append(code[begin_index:])
+                    break
+
+                # Добавляем транзакцию (включая COMMIT)
+                transaction = code[begin_index:commit_index + len("COMMIT")]
+                if transaction.strip():  # Проверка, что транзакция не пустая
+                    transactions.append(transaction)
+
+                # Переходим к следующей части кода
+                last_position = commit_index + len("COMMIT")
+                code = code[last_position:]
+
+            # Проверяем, есть ли код после последнего COMMIT
+            if last_position < len(self.sql_code) and code.strip():
+                # Разбиваем код после последнего COMMIT по точке с запятой
+                for stmt in [s.strip() for s in code.split(';') if s.strip()]:
+                    transactions.append(stmt + ';')
+
+            if transactions:
+                return transactions
+
+        # Если явных транзакций нет или не удалось разбить по BEGIN...COMMIT, разбиваем по точке с запятой
+        statements = [stmt.strip() for stmt in self.sql_code.split(';') if stmt.strip()]
+        return [stmt + ';' for stmt in statements]
+
+    def get_transactions(self) -> List[str]:
+        """
+        Возвращает список транзакций.
+
+        Returns:
+            List[str]: Список транзакций
+        """
+        return self.transactions
+
+
 class DirectoryParser:
     """Class for processing SQL files in a directory."""
 
