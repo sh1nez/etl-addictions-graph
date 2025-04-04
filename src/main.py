@@ -193,55 +193,55 @@ class SQLTransactionParser:
         Returns:
             List[str]: List of strings, each representing a separate transaction
         """
-        # Проверка на пустой код
+        # Check for empty code
         if not self.sql_code:
             return []
 
-        # Если код содержит явные транзакции (BEGIN...COMMIT)
+        # If the code contains explicit transactions (BEGIN...COMMIT)
         if "BEGIN" in self.sql_code.upper() and "COMMIT" in self.sql_code.upper():
-            # Разделяем по BEGIN...COMMIT
+            # Split by BEGIN...COMMIT
             transactions = []
             code = self.sql_code
             last_position = 0
 
-            # Проверяем, есть ли код до первого BEGIN
+            # Check if there's any code before the first BEGIN
             first_begin = code.upper().find("BEGIN")
             if first_begin > 0:
                 pre_code = code[:first_begin].strip()
                 if pre_code:
-                    # Разбиваем код до первого BEGIN по точке с запятой
+                    # Split the code before the first BEGIN by semicolon
                     for stmt in [s.strip() for s in pre_code.split(';') if s.strip()]:
                         transactions.append(stmt + ';')
 
             while "BEGIN" in code.upper():
                 begin_index = code.upper().find("BEGIN")
-                # Найти соответствующий COMMIT
+                # Find the corresponding COMMIT
                 commit_index = code.upper().find("COMMIT", begin_index)
 
                 if commit_index == -1:
-                    # Если COMMIT не найден, берем весь оставшийся код
+                    # If COMMIT isn't found, take all the remaining code
                     transactions.append(code[begin_index:])
                     break
 
-                # Добавляем транзакцию (включая COMMIT)
+                # Add the transaction (including COMMIT)
                 transaction = code[begin_index:commit_index + len("COMMIT")]
-                if transaction.strip():  # Проверка, что транзакция не пустая
+                if transaction.strip():  # Check if the transaction isn't empty
                     transactions.append(transaction)
 
-                # Переходим к следующей части кода
+                # Move to the next part of the code
                 last_position = commit_index + len("COMMIT")
                 code = code[last_position:]
 
-            # Проверяем, есть ли код после последнего COMMIT
+            # Check if there's any code after the last COMMIT
             if last_position < len(self.sql_code) and code.strip():
-                # Разбиваем код после последнего COMMIT по точке с запятой
+                # Split the code after the last COMMIT by semicolon
                 for stmt in [s.strip() for s in code.split(';') if s.strip()]:
                     transactions.append(stmt + ';')
 
             if transactions:
                 return transactions
 
-        # Если явных транзакций нет или не удалось разбить по BEGIN...COMMIT, разбиваем по точке с запятой
+        # If there are no explicit transactions or couldn't split by BEGIN...COMMIT, split by semicolon
         statements = [stmt.strip() for stmt in self.sql_code.split(';') if stmt.strip()]
         return [stmt + ';' for stmt in statements]
 
@@ -281,11 +281,11 @@ class DirectoryParser:
                     try:  # TODO with заменяет трай кетч блок, насколько я знаю, заменить
                         with open(file_path, "r", encoding="utf-8") as f:
                             sql_code = f.read()
-                            # Используем SQLTransactionParser для разбиения файла на транзакции
+                            # Use SQLTransactionParser to split the file into transactions
                             transaction_parser = SQLTransactionParser(sql_code)
                             transactions = transaction_parser.get_transactions()
 
-                            # Обрабатываем каждую транзакцию и объединяем зависимости
+                            # Process each transaction and combine dependencies
                             combined_dependencies = defaultdict(set)
                             all_corrections = []
 
@@ -294,11 +294,11 @@ class DirectoryParser:
                                 trans_dependencies = ast.get_dependencies()
                                 trans_corrections = ast.get_corrections()
 
-                                # Добавляем номер транзакции к сообщениям коррекции
+                                # Add transaction number to correction messages
                                 if trans_corrections:
                                     all_corrections.extend([f"Transaction {i}: {corr}" for corr in trans_corrections])
 
-                                # Объединяем зависимости от всех транзакций
+                                # Combine dependencies from all transactions
                                 for to_table, from_tables in trans_dependencies.items():
                                     combined_dependencies[to_table].update(from_tables)
 
@@ -335,18 +335,18 @@ class GraphManager:
         Returns:
             List[str]: List of corrections from all transactions
         """
-        # Используем SQLTransactionParser для разбиения кода на транзакции
+        # Use SQLTransactionParser to split code into transactions
         transaction_parser = SQLTransactionParser(sql_code)
         transactions = transaction_parser.get_transactions()
 
         all_corrections = []
 
-        # Обрабатываем каждую транзакцию
+        # Process each transaction
         for i, transaction in enumerate(transactions, 1):
             ast = SqlAst(transaction)
             self.storage.add_dependencies(ast.get_dependencies())
 
-            # Добавляем номер транзакции к сообщениям коррекции
+            # Add transaction number to correction messages
             corrections = ast.get_corrections()
             if corrections:
                 all_corrections.extend([f"Transaction {i}: {corr}" for corr in corrections])
