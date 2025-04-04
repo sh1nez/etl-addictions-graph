@@ -174,24 +174,24 @@ class SqlAst:
 
 
 class SQLTransactionParser:
-    """Класс для разбиения SQL-кода на транзакции."""
+    """Class for splitting SQL code into transactions."""
 
     def __init__(self, sql_code: str):
         """
-        Инициализирует парсер транзакций.
+        Initialize the transaction parser.
 
         Args:
-            sql_code (str): SQL-код для разбиения на транзакции
+            sql_code (str): SQL code to split into transactions
         """
         self.sql_code = sql_code.strip() if sql_code else ""
         self.transactions = self._split_transactions()
 
     def _split_transactions(self) -> List[str]:
         """
-        Разбивает SQL-код на транзакции.
+        Split SQL code into transactions.
 
         Returns:
-            List[str]: Список строк, каждая из которых представляет отдельную транзакцию
+            List[str]: List of strings, each representing a separate transaction
         """
         # Проверка на пустой код
         if not self.sql_code:
