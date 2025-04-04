@@ -6,13 +6,18 @@ from collections import defaultdict
 from sqlglot.expressions import Update, Insert, Table
 from typing import Optional
 
+def safe_parse(sql):
+    try:
+        return parse(sql, dialect='postgres')
+    except:
+        return parse(sql, dialect='oracle')
 
 class SQLAST:
     """Класс для построения AST SQL-запросов."""
 
     def __init__(self, sql_code: str):
         self.sql_code = sql_code
-        self.parsed = parse(sql_code)
+        self.parsed = safe_parse(sql_code)
         self.dependencies = self._extract_dependencies()
 
     def _extract_dependencies(self) -> defaultdict[set[Table, Table]]:
@@ -72,7 +77,7 @@ class DirectoryParser:
                         sql_code = f.read()
                         ast = self.sql_ast(sql_code)
                         self.graph.add_dependencies(ast.get_dependencies())
-    
+
     def separate_parse(self, directory: str):
         """Парсит поочерёдно все SQL-файлы в указанной директории в отдельные графы и отображает их.(для тестирования)"""
         for root, _, files in os.walk(directory):
