@@ -210,8 +210,8 @@ class SQLTransactionParser:
                 pre_code = code[:first_begin].strip()
                 if pre_code:
                     # Split the code before the first BEGIN by semicolon
-                    for stmt in [s.strip() for s in pre_code.split(';') if s.strip()]:
-                        transactions.append(stmt + ';')
+                    for stmt in [s.strip() for s in pre_code.split(";") if s.strip()]:
+                        transactions.append(stmt + ";")
 
             while "BEGIN" in code.upper():
                 begin_index = code.upper().find("BEGIN")
@@ -224,7 +224,7 @@ class SQLTransactionParser:
                     break
 
                 # Add the transaction (including COMMIT)
-                transaction = code[begin_index:commit_index + len("COMMIT")]
+                transaction = code[begin_index : commit_index + len("COMMIT")]
                 if transaction.strip():  # Check if the transaction isn't empty
                     transactions.append(transaction)
 
@@ -235,15 +235,15 @@ class SQLTransactionParser:
             # Check if there's any code after the last COMMIT
             if last_position < len(self.sql_code) and code.strip():
                 # Split the code after the last COMMIT by semicolon
-                for stmt in [s.strip() for s in code.split(';') if s.strip()]:
-                    transactions.append(stmt + ';')
+                for stmt in [s.strip() for s in code.split(";") if s.strip()]:
+                    transactions.append(stmt + ";")
 
             if transactions:
                 return transactions
 
         # If there are no explicit transactions or couldn't split by BEGIN...COMMIT, split by semicolon
-        statements = [stmt.strip() for stmt in self.sql_code.split(';') if stmt.strip()]
-        return [stmt + ';' for stmt in statements]
+        statements = [stmt.strip() for stmt in self.sql_code.split(";") if stmt.strip()]
+        return [stmt + ";" for stmt in statements]
 
     def get_transactions(self) -> List[str]:
         """
@@ -296,7 +296,12 @@ class DirectoryParser:
 
                                 # Add transaction number to correction messages
                                 if trans_corrections:
-                                    all_corrections.extend([f"Transaction {i}: {corr}" for corr in trans_corrections])
+                                    all_corrections.extend(
+                                        [
+                                            f"Transaction {i}: {corr}"
+                                            for corr in trans_corrections
+                                        ]
+                                    )
 
                                 # Combine dependencies from all transactions
                                 for to_table, from_tables in trans_dependencies.items():
@@ -349,7 +354,9 @@ class GraphManager:
             # Add transaction number to correction messages
             corrections = ast.get_corrections()
             if corrections:
-                all_corrections.extend([f"Transaction {i}: {corr}" for corr in corrections])
+                all_corrections.extend(
+                    [f"Transaction {i}: {corr}" for corr in corrections]
+                )
 
         return all_corrections
 
