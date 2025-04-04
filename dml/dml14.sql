@@ -1,6 +1,6 @@
 -- Добавление новых заказов из внешнего источника
 INSERT INTO orders (order_id, customer_id, order_total, order_date)
-SELECT 
+SELECT
     o.id,
     o.client_id,
     o.total_amount,

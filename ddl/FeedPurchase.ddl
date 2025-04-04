@@ -71,7 +71,7 @@ WHERE purchase_date < CURRENT_DATE - DATEADD(day, -15, CURRENT_DATE);
 
 UPDATE FeedPurchase
 SET feed_type = CONCAT('Premium ', feed_type)
-FROM FeedPurchase 
+FROM FeedPurchase
 JOIN Supplier ON FeedPurchase.supplier_id = Supplier.supplier_id
 WHERE Supplier.supplier_id % 2 = 0;
 

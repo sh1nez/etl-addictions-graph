@@ -1,6 +1,6 @@
 -- Вставка отсутствующих категорий из списка
 INSERT INTO categories (category_id, category_name)
-SELECT 
+SELECT
     l.id,
     l.name
 FROM list_of_categories l

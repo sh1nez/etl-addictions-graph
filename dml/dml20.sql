@@ -1,6 +1,6 @@
 -- Добавление новых сотрудников
 INSERT INTO employees (employee_id, name, email, position)
-SELECT 
+SELECT
     h.id,
     h.full_name,
     h.contact_email,

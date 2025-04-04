@@ -1,0 +1,26 @@
+name: Code Format Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  format-check:
+    name: Run Black and Prettier
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install Black
+        run: pip install black
+
+      - name: Run Black in check mode
+        run: black --check .

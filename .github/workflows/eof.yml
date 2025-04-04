@@ -1,0 +1,25 @@
+name: Check End of File Newline
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  eof-check:
+    name: Ensure Files End with Newline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run End of File Newline Check
+        run: |
+          #!/bin/bash
+          find . -type f -exec file {} \; | grep 'text' | cut -d: -f1 | while read -r file; do
+            if [ -n "$(tail -c 1 "$file")" ]; then
+              echo "File '$file' does not end with a newline."
+              exit 1
+            fi
+          done
