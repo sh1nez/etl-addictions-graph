@@ -247,10 +247,10 @@ class SQLTransactionParser:
 
     def get_transactions(self) -> List[str]:
         """
-        Возвращает список транзакций.
+        Return the list of transactions.
 
         Returns:
-            List[str]: Список транзакций
+            List[str]: List of transactions
         """
         return self.transactions
 
