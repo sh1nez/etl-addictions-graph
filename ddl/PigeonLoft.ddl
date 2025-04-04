@@ -42,20 +42,20 @@ update PigeonLoft
 set manager_id = 3
 where manager_id is null
 
-update PigeonLoft
-set location = 'Москва, Россия'
-where manager_id = 3
+UPDATE PigeonLoft
+SET location = CONCAT(UPPER(location), LOWER(location))
+WHERE manager_id = 1;
 
 delete PigeonLoft
 where established_date < '2005-09-23'
 
 INSERT INTO PigeonLoft (loft_name, location, capacity, established_date) 
-select loft_name, Upper(location), capacity, established_date	from PigeonLoft
-where manager_id = 1
+SELECT loft_name, UPPER(location), CAST(capacity AS INT), FORMAT(established_date, 'yyyy-MM-dd') FROM PigeonLoft 
+WHERE manager_id = 1;
 
-update PigeonLoft
-set location = 'Омск, Россия'
-where manager_id = 1
+UPDATE PigeonLoft
+SET established_date = DATEADD(YEAR, 1, established_date)
+WHERE capacity > 60;
 
 delete PigeonLoft
 where location in ('Саратов, Россия', 'Тюмень, Россия')
