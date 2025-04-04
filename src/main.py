@@ -281,11 +281,31 @@ class DirectoryParser:
                     try:  # TODO with заменяет трай кетч блок, насколько я знаю, заменить
                         with open(file_path, "r", encoding="utf-8") as f:
                             sql_code = f.read()
-                            ast = self.sql_ast_cls(sql_code)
+                            # Используем SQLTransactionParser для разбиения файла на транзакции
+                            transaction_parser = SQLTransactionParser(sql_code)
+                            transactions = transaction_parser.get_transactions()
+
+                            # Обрабатываем каждую транзакцию и объединяем зависимости
+                            combined_dependencies = defaultdict(set)
+                            all_corrections = []
+
+                            for i, transaction in enumerate(transactions, 1):
+                                ast = self.sql_ast_cls(transaction)
+                                trans_dependencies = ast.get_dependencies()
+                                trans_corrections = ast.get_corrections()
+
+                                # Добавляем номер транзакции к сообщениям коррекции
+                                if trans_corrections:
+                                    all_corrections.extend([f"Transaction {i}: {corr}" for corr in trans_corrections])
+
+                                # Объединяем зависимости от всех транзакций
+                                for to_table, from_tables in trans_dependencies.items():
+                                    combined_dependencies[to_table].update(from_tables)
+
                             results.append(
                                 (
-                                    ast.get_dependencies(),
-                                    ast.get_corrections(),
+                                    combined_dependencies,
+                                    all_corrections,
                                     file_path,
                                 )
                             )
@@ -306,9 +326,32 @@ class GraphManager:
         self.parser = DirectoryParser(SqlAst)
 
     def process_sql(self, sql_code: str) -> List[str]:
-        ast = SqlAst(sql_code)
-        self.storage.add_dependencies(ast.get_dependencies())
-        return ast.get_corrections()
+        """
+        Process SQL code by splitting it into transactions and analyzing each one.
+
+        Args:
+            sql_code (str): SQL code to process
+
+        Returns:
+            List[str]: List of corrections from all transactions
+        """
+        # Используем SQLTransactionParser для разбиения кода на транзакции
+        transaction_parser = SQLTransactionParser(sql_code)
+        transactions = transaction_parser.get_transactions()
+
+        all_corrections = []
+
+        # Обрабатываем каждую транзакцию
+        for i, transaction in enumerate(transactions, 1):
+            ast = SqlAst(transaction)
+            self.storage.add_dependencies(ast.get_dependencies())
+
+            # Добавляем номер транзакции к сообщениям коррекции
+            corrections = ast.get_corrections()
+            if corrections:
+                all_corrections.extend([f"Transaction {i}: {corr}" for corr in corrections])
+
+        return all_corrections
 
     def process_directory(self, directory_path: str) -> List[Tuple[str, List[str]]]:
         results = []  # maybe hashmap better??
