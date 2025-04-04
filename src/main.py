@@ -8,6 +8,18 @@ from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select
 
 HAS_SQLGLOT = True  # TODO remove it
 
+def safe_parse(sql):
+    try:
+        return parse(sql, dialect='postgres'), 'postgres'
+    except:
+        pass
+
+    try:
+        return parse(sql, dialect='oracle'), 'oracle'
+    except:
+        pass
+
+    return None, 'Unknown'
 
 class GraphStorage:
     """Class for storing dependency graph data."""
@@ -86,7 +98,7 @@ class SqlAst:
             )
             return
         try:
-            self.parsed = parse(self.corrected_sql)
+            self.parsed, self.dialect = safe_parse(self.corrected_sql)
             self.dependencies = self._extract_dependencies()
         except Exception as e:
             print(f"Error parsing SQL: {e}")
