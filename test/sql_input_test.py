@@ -1,5 +1,6 @@
 import src.main
 from src.settings import BASE_DIR
+from unittest.mock import ANY
 
 
 __all__ = []
@@ -26,7 +27,7 @@ class TestSqlInput:
 
         assert graph_storage[1] == []
 
-    def test_graph_manager_process_sql_correct_sql_query(self):
+    def test_graph_manager_process_sql_correct_sql_query_insert_operation(self):
         table_name = "valid_table"
         manager = src.main.GraphManager()
         corrections = manager.process_sql(
@@ -39,7 +40,23 @@ class TestSqlInput:
 
         assert graph_storage[0] == set(["input", table_name])
 
-        assert graph_storage[1] == [("input", table_name)]
+        assert graph_storage[1] == [("input", table_name, {'operation': 'Insert', 'color': ANY})]
+
+    def test_graph_manager_process_sql_correct_sql_query_update_operation(self):
+        table_name_1 = "valid_table"
+        table_name_2 = "valid_table_2"
+        manager = src.main.GraphManager()
+        corrections = manager.process_sql(
+            f"UPDATE {table_name_1} SET a = {table_name_2}.a FROM {table_name_2} WHERE {table_name_1}.b = {table_name_2}.b;"
+        )
+
+        assert corrections == []
+
+        graph_storage = (manager.storage.nodes, manager.storage.edges)
+
+        assert graph_storage[0] == set([table_name_2, table_name_1])
+
+        assert graph_storage[1] == [(table_name_2, table_name_1, {'operation': 'Update', 'color': ANY})]
 
     def test_graph_manager_process_directory_dir_path_not_exists(self, capsys):
         dir_path = "/hfjalsf"
