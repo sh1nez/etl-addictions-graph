@@ -40,7 +40,9 @@ class TestSqlInput:
 
         assert graph_storage[0] == set(["input", table_name])
 
-        assert graph_storage[1] == [("input", table_name, {'operation': 'Insert', 'color': ANY})]
+        assert graph_storage[1] == [
+            ("input", table_name, {"operation": "Insert", "color": ANY})
+        ]
 
     def test_graph_manager_process_sql_correct_sql_query_update_operation(self):
         table_name_1 = "valid_table"
@@ -56,7 +58,9 @@ class TestSqlInput:
 
         assert graph_storage[0] == set([table_name_2, table_name_1])
 
-        assert graph_storage[1] == [(table_name_2, table_name_1, {'operation': 'Update', 'color': ANY})]
+        assert graph_storage[1] == [
+            (table_name_2, table_name_1, {"operation": "Update", "color": ANY})
+        ]
 
     def test_graph_manager_process_directory_dir_path_not_exists(self, capsys):
         dir_path = "/hfjalsf"
