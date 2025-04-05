@@ -101,6 +101,7 @@ class SqlAst:
             return
         try:
             self.parsed, self.dialect = safe_parse(self.corrected_sql)
+            assert self.parsed is not None
             self.dependencies = self._extract_dependencies()
         except Exception as e:
             print(f"Error parsing SQL: {e}")
