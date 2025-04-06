@@ -173,6 +173,88 @@ class SqlAst:
             return "unknown"
 
 
+class SQLTransactionParser:
+    """Class for splitting SQL code into transactions."""
+
+    def __init__(self, sql_code: str):
+        """
+        Initialize the transaction parser.
+
+        Args:
+            sql_code (str): SQL code to split into transactions
+        """
+        self.sql_code = sql_code.strip() if sql_code else ""
+        self.transactions = self._split_transactions()
+
+    def _split_transactions(self) -> List[str]:
+        """
+        Split SQL code into transactions.
+
+        Returns:
+            List[str]: List of strings, each representing a separate transaction
+        """
+        # Check for empty code
+        if not self.sql_code:
+            return []
+
+        # If the code contains explicit transactions (BEGIN...COMMIT)
+        if "BEGIN" in self.sql_code.upper() and "COMMIT" in self.sql_code.upper():
+            # Split by BEGIN...COMMIT
+            transactions = []
+            code = self.sql_code
+            last_position = 0
+
+            # Check if there's any code before the first BEGIN
+            first_begin = code.upper().find("BEGIN")
+            if first_begin > 0:
+                pre_code = code[:first_begin].strip()
+                if pre_code:
+                    # Split the code before the first BEGIN by semicolon
+                    for stmt in [s.strip() for s in pre_code.split(";") if s.strip()]:
+                        transactions.append(stmt + ";")
+
+            while "BEGIN" in code.upper():
+                begin_index = code.upper().find("BEGIN")
+                # Find the corresponding COMMIT
+                commit_index = code.upper().find("COMMIT", begin_index)
+
+                if commit_index == -1:
+                    # If COMMIT isn't found, take all the remaining code
+                    transactions.append(code[begin_index:])
+                    break
+
+                # Add the transaction (including COMMIT)
+                transaction = code[begin_index : commit_index + len("COMMIT")]
+                if transaction.strip():  # Check if the transaction isn't empty
+                    transactions.append(transaction)
+
+                # Move to the next part of the code
+                last_position = commit_index + len("COMMIT")
+                code = code[last_position:]
+
+            # Check if there's any code after the last COMMIT
+            if last_position < len(self.sql_code) and code.strip():
+                # Split the code after the last COMMIT by semicolon
+                for stmt in [s.strip() for s in code.split(";") if s.strip()]:
+                    transactions.append(stmt + ";")
+
+            if transactions:
+                return transactions
+
+        # If there are no explicit transactions or couldn't split by BEGIN...COMMIT, split by semicolon
+        statements = [stmt.strip() for stmt in self.sql_code.split(";") if stmt.strip()]
+        return [stmt + ";" for stmt in statements]
+
+    def get_transactions(self) -> List[str]:
+        """
+        Return the list of transactions.
+
+        Returns:
+            List[str]: List of transactions
+        """
+        return self.transactions
+
+
 class DirectoryParser:
     """Class for processing SQL files in a directory."""
 
@@ -199,11 +281,36 @@ class DirectoryParser:
                     try:  # TODO with заменяет трай кетч блок, насколько я знаю, заменить
                         with open(file_path, "r", encoding="utf-8") as f:
                             sql_code = f.read()
-                            ast = self.sql_ast_cls(sql_code)
+                            # Use SQLTransactionParser to split the file into transactions
+                            transaction_parser = SQLTransactionParser(sql_code)
+                            transactions = transaction_parser.get_transactions()
+
+                            # Process each transaction and combine dependencies
+                            combined_dependencies = defaultdict(set)
+                            all_corrections = []
+
+                            for i, transaction in enumerate(transactions, 1):
+                                ast = self.sql_ast_cls(transaction)
+                                trans_dependencies = ast.get_dependencies()
+                                trans_corrections = ast.get_corrections()
+
+                                # Add transaction number to correction messages
+                                if trans_corrections:
+                                    all_corrections.extend(
+                                        [
+                                            f"Transaction {i}: {corr}"
+                                            for corr in trans_corrections
+                                        ]
+                                    )
+
+                                # Combine dependencies from all transactions
+                                for to_table, from_tables in trans_dependencies.items():
+                                    combined_dependencies[to_table].update(from_tables)
+
                             results.append(
                                 (
-                                    ast.get_dependencies(),
-                                    ast.get_corrections(),
+                                    combined_dependencies,
+                                    all_corrections,
                                     file_path,
                                 )
                             )
@@ -224,9 +331,34 @@ class GraphManager:
         self.parser = DirectoryParser(SqlAst)
 
     def process_sql(self, sql_code: str) -> List[str]:
-        ast = SqlAst(sql_code)
-        self.storage.add_dependencies(ast.get_dependencies())
-        return ast.get_corrections()
+        """
+        Process SQL code by splitting it into transactions and analyzing each one.
+
+        Args:
+            sql_code (str): SQL code to process
+
+        Returns:
+            List[str]: List of corrections from all transactions
+        """
+        # Use SQLTransactionParser to split code into transactions
+        transaction_parser = SQLTransactionParser(sql_code)
+        transactions = transaction_parser.get_transactions()
+
+        all_corrections = []
+
+        # Process each transaction
+        for i, transaction in enumerate(transactions, 1):
+            ast = SqlAst(transaction)
+            self.storage.add_dependencies(ast.get_dependencies())
+
+            # Add transaction number to correction messages
+            corrections = ast.get_corrections()
+            if corrections:
+                all_corrections.extend(
+                    [f"Transaction {i}: {corr}" for corr in corrections]
+                )
+
+        return all_corrections
 
     def process_directory(self, directory_path: str) -> List[Tuple[str, List[str]]]:
         results = []  # maybe hashmap better??
