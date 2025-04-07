@@ -1,27 +1,49 @@
 import os
 import networkx as nx
 from collections import defaultdict
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Union
 from matplotlib import pyplot as plt
 from sqlglot import parse, transpile
-from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select
+from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, DML
 
 HAS_SQLGLOT = True  # TODO remove it
+
+
+class Edge:
+    def __init__(self, from_table: Table, op: Union[DML, Select]):
+        self.from_table = from_table
+        self.op = op  # operation
 
 
 class GraphStorage:
     """Class for storing dependency graph data."""
 
+    COLORS = {
+        Insert: "red",
+        Update: "green",
+        Delete: "blue",
+        Merge: "yellow",
+        Select: "purple",
+    }
+
     def __init__(self):
         self.nodes = set()
-        self.edges = []
+        self.edges: list[Edge] = []
 
     def add_dependencies(self, dependencies: defaultdict):
-        for to_table, from_tables in dependencies.items():
+        for to_table, edges in dependencies.items():
             self.nodes.add(to_table)
-            for from_table in from_tables:
-                self.nodes.add(from_table)
-                self.edges.append((from_table, to_table))
+            for edge in edges:
+                self.nodes.add(edge.from_table)
+                op_name = type(edge.op).__name__
+                op_color = self.COLORS.get(type(edge.op), "gray")
+                self.edges.append(
+                    (
+                        edge.from_table,
+                        to_table,
+                        {"operation": op_name, "color": op_color},
+                    )
+                )
 
     def clear(self):
         self.nodes.clear()
@@ -40,22 +62,27 @@ class GraphVisualizer:
         G.add_edges_from(storage.edges)
         plt.figure(figsize=(10, 6))
         try:
-            n = G.number_of_nodes()
-            pos = nx.spring_layout(G, k=1 / (n**0.0625), iterations=100, scale=2)
-            # * Есть разные методы layout, по идее потом можно будет использовать nx.multipartite_layout(),
+            pos = nx.spring_layout(G)
+            # * Есть разные методы layout, в теории потом можно будет использовать nx.multipartite_layout(),
             # * который послойно будет отображать ноды, т.е. можно отображать что-то наподобии этапов
             # * pos = nx.multipartite_layout(G, subset_key="layer")
+            # * или можно использовать тот же spring_layout, но с параметрами для большего расстояния между нодами:
+            # * n = G.number_of_nodes()
+            # * nx.spring_layout(G, k=1 / (n**0.0625), iterations=100, scale=2)
+            colors = nx.get_edge_attributes(G, "color").values()
+            labels = nx.get_edge_attributes(G, "operation")
             nx.draw(
                 G,
                 pos,
                 with_labels=True,
                 node_color="lightblue",
-                edge_color="gray",
+                edge_color=colors,
                 font_size=10,
                 node_size=2000,
             )
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
             if title:
-                plt.title(title)  # ! window still being named as Figure 1
+                plt.title(title)  # ! window still being named as Figure 1 (at least on Windows)
                 # plt.gcf().canvas.manager.set_window_title(title) was working
             plt.show()
         except Exception as e:
@@ -125,7 +152,7 @@ class SqlAst:
                                 self.get_first_from(sub_statement)
                                 or f"input {self._get_input_id()}"
                             )
-                            dependencies[to_table].add(from_table)
+                            dependencies[to_table].add(Edge(from_table, sub_statement))
                         except Exception as e:
                             print(f"Error extracting dependencies: {e}")
                     elif isinstance(sub_statement, Select):
@@ -140,7 +167,9 @@ class SqlAst:
                                     self.get_first_from(sub_statement)
                                     or f"input {self._get_input_id()}"
                                 )
-                                dependencies[to_table].add(from_table)
+                                dependencies[to_table].add(
+                                    Edge(from_table, sub_statement)
+                                )
                             except Exception as e:
                                 print(f"Error extracting SELECT INTO dependencies: {e}")
                         else:
@@ -151,7 +180,9 @@ class SqlAst:
                                     or f"input {self._get_input_id()}"
                                 )
                                 to_table = f"result {self._get_output_id()}"
-                                dependencies[to_table].add(from_table)
+                                dependencies[to_table].add(
+                                    Edge(from_table, sub_statement)
+                                )
                             except Exception as e:
                                 print(f"Error extracting SELECT dependency: {e}")
         except Exception as e:
