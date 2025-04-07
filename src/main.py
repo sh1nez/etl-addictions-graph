@@ -3,8 +3,8 @@ import networkx as nx
 from collections import defaultdict
 from typing import Optional, Tuple, List, Union
 from matplotlib import pyplot as plt
-from sqlglot import parse, transpile
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, DML
+from util.dialect import safe_parse
 
 HAS_SQLGLOT = True  # TODO remove it
 
@@ -126,7 +126,8 @@ class SqlAst:
             )
             return
         try:
-            self.parsed = parse(self.corrected_sql)
+            self.parsed, self.dialect = safe_parse(self.corrected_sql)
+            assert self.parsed is not None
             self.dependencies = self._extract_dependencies()
         except Exception as e:
             print(f"Error parsing SQL: {e}")
