@@ -82,8 +82,8 @@ class GraphVisualizer:
             )
             nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
             if title:
-                plt.title(title)  # ! window still being named as Figure 1 (at least on Windows)
-                # plt.gcf().canvas.manager.set_window_title(title) was working
+                plt.title(title)  # ! window still being named as Figure 1
+                # plt.gcf().canvas.manager.set_window_title(title) # was working (at least on Windows)
             plt.show()
         except Exception as e:
             print(f"Error visualizing graph: {e}")
@@ -295,7 +295,7 @@ class GraphManager:
         self.parser = DirectoryParser(SqlAst)
 
     def process_sql(self, sql_code: str) -> List[str]:
-        ast = SqlAst(sql_code)
+        ast = SqlAst(sql_code, sep_parse=True)
         self.storage.add_dependencies(ast.get_dependencies())
         return ast.get_corrections()
 
