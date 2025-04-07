@@ -63,6 +63,12 @@ class GraphVisualizer:
         plt.figure(figsize=(10, 6))
         try:
             pos = nx.spring_layout(G)
+            # * Есть разные методы layout, в теории потом можно будет использовать nx.multipartite_layout(),
+            # * который послойно будет отображать ноды, т.е. можно отображать что-то наподобии этапов
+            # * pos = nx.multipartite_layout(G, subset_key="layer")
+            # * или можно использовать тот же spring_layout, но с параметрами для большего расстояния между нодами:
+            # * n = G.number_of_nodes()
+            # * nx.spring_layout(G, k=1 / (n**0.0625), iterations=100, scale=2)
             colors = nx.get_edge_attributes(G, "color").values()
             labels = nx.get_edge_attributes(G, "operation")
             nx.draw(
@@ -76,7 +82,8 @@ class GraphVisualizer:
             )
             nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
             if title:
-                plt.title(title)
+                plt.title(title)  # ! window still being named as Figure 1
+                # plt.gcf().canvas.manager.set_window_title(title) # was working (at least on Windows)
             plt.show()
         except Exception as e:
             print(f"Error visualizing graph: {e}")
@@ -88,7 +95,11 @@ class GraphVisualizer:
 class SqlAst:
     """Class for building AST of SQL queries."""
 
-    def __init__(self, sql_code: str):
+    _input_id = 0
+    _output_id = 0
+    _unknown_id = 0
+
+    def __init__(self, sql_code: str, sep_parse: bool = False):
         # self.corrector = EnhancedSQLCorrector()
         if not sql_code or not isinstance(sql_code, str):
             self.corrected_sql = ""
@@ -101,6 +112,10 @@ class SqlAst:
         self.sql_code = sql_code
         self.corrected_sql = self.sql_code
         self.dependencies = defaultdict(set)
+        self.input_id = SqlAst._input_id
+        self.output_id = SqlAst._output_id
+        self.unknown_id = SqlAst._unknown_id
+        self.sep_parse = sep_parse
         # self.corrected_sql, self.corrections = self.corrector.correct(sql_code)
         # self.sql_code = self.corrected_sql
         if not HAS_SQLGLOT:
@@ -134,7 +149,10 @@ class SqlAst:
                             continue
                         try:
                             to_table = self.get_table_name(sub_statement)
-                            from_table = self.get_first_from(sub_statement) or "input"
+                            from_table = (
+                                self.get_first_from(sub_statement)
+                                or f"input {self._get_input_id()}"
+                            )
                             dependencies[to_table].add(Edge(from_table, sub_statement))
                         except Exception as e:
                             print(f"Error extracting dependencies: {e}")
@@ -147,7 +165,8 @@ class SqlAst:
                             try:
                                 to_table = self.get_table_name(sub_statement.into)
                                 from_table = (
-                                    self.get_first_from(sub_statement) or "input"
+                                    self.get_first_from(sub_statement)
+                                    or f"input {self._get_input_id()}"
                                 )
                                 dependencies[to_table].add(
                                     Edge(from_table, sub_statement)
@@ -158,9 +177,11 @@ class SqlAst:
                             # Для обычного SELECT, считаем целевым псевдо-таблицу "result"
                             try:
                                 from_table = (
-                                    self.get_first_from(sub_statement) or "input"
+                                    self.get_first_from(sub_statement)
+                                    or f"input {self._get_input_id()}"
                                 )
-                                dependencies["result"].add(
+                                to_table = f"result {self._get_output_id()}"
+                                dependencies[to_table].add(
                                     Edge(from_table, sub_statement)
                                 )
                             except Exception as e:
@@ -189,7 +210,7 @@ class SqlAst:
 
     def get_table_name(self, parsed) -> str:
         if not HAS_SQLGLOT:
-            return "unknown"
+            return f"unknown {self._get_unknown_id()}"
         try:
             counter = 0
             while "this" in parsed.args and counter < 100:
@@ -200,7 +221,28 @@ class SqlAst:
             raise Exception("No table found")
         except Exception as e:
             print(f"Error in get_table_name: {e}")
-            return "unknown"
+            return f"unknown {self._get_unknown_id()}"
+
+    def _get_input_id(self):
+        if self.sep_parse:
+            self.input_id += 1
+            return self.input_id - 1
+        SqlAst._input_id += 1
+        return SqlAst._input_id - 1
+
+    def _get_output_id(self):
+        if self.sep_parse:
+            self.output_id += 1
+            return self.output_id - 1
+        SqlAst._output_id += 1
+        return SqlAst._output_id - 1
+
+    def _get_unknown_id(self):
+        if self.sep_parse:
+            self.unknown_id += 1
+            return self.unknown_id - 1
+        SqlAst._unknown_id += 1
+        return SqlAst._unknown_id - 1
 
 
 class DirectoryParser:
@@ -210,7 +252,7 @@ class DirectoryParser:
         self.sql_ast_cls = sql_ast_cls
 
     def parse_directory(
-        self, directory: str
+        self, directory: str, sep_parse: bool = False
     ) -> List[Tuple[defaultdict, List[str], str]]:
         results = []  # maybe hashmap better??
         if not os.path.exists(directory):
@@ -229,7 +271,7 @@ class DirectoryParser:
                     try:  # TODO with заменяет трай кетч блок, насколько я знаю, заменить
                         with open(file_path, "r", encoding="utf-8") as f:
                             sql_code = f.read()
-                            ast = self.sql_ast_cls(sql_code)
+                            ast = self.sql_ast_cls(sql_code, sep_parse)
                             results.append(
                                 (
                                     ast.get_dependencies(),
@@ -254,7 +296,7 @@ class GraphManager:
         self.parser = DirectoryParser(SqlAst)
 
     def process_sql(self, sql_code: str) -> List[str]:
-        ast = SqlAst(sql_code)
+        ast = SqlAst(sql_code, sep_parse=True)
         self.storage.add_dependencies(ast.get_dependencies())
         return ast.get_corrections()
 
@@ -294,7 +336,7 @@ def main():
         directory = input("Enter the directory path containing SQL files: ")
         choice = input("Display graphs separately for each file? (y/n): ")
         if choice.lower() == "y":
-            parse_results = manager.parser.parse_directory(directory)
+            parse_results = manager.parser.parse_directory(directory, sep_parse=True)
             for dependencies, corrections, file_path in parse_results:
                 print(f"\nFile: {file_path}")
                 if corrections:
