@@ -73,23 +73,19 @@ class TestSQLProcessing:
 
 class TestDirectoryProcessing:
     def test_process_directory(self, tmp_path):
-        # Создаем временную директорию с тестовыми файлами
         sql_dir = tmp_path / "sql"
         sql_dir.mkdir()
         
-        # Файл 1: Создание таблиц
         (sql_dir / "create.sql").write_text("""
         CREATE TABLE users (id INT PRIMARY KEY);
         CREATE TABLE logs (user_id INT, action TEXT);
         """)
         
-        # Файл 2: Вставка данных
         (sql_dir / "insert.sql").write_text("""
         INSERT INTO users VALUES (1);
         INSERT INTO logs SELECT 1, 'login';
         """)
         
-        # Файл 3: Обновление данных
         (sql_dir / "update.sql").write_text("""
         UPDATE users 
         SET name = 'test' 
