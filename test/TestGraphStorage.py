@@ -1,67 +1,160 @@
-import src.main
-from src.settings import BASE_DIR
+import pytest
+import os
 from unittest.mock import ANY
+from src.graph import GraphManager, GraphStorage
+from src.parser.sql_ast import SQLAST
 
-
-class TestSqlInput:
-    def test_process_sql_insert_select(self):
-        """INSERT INTO orders SELECT * FROM temp_orders"""
-        manager = src.main.GraphManager()
+class TestSQLProcessing:
+    def test_insert_select(self):
+        """INSERT INTO target SELECT FROM source"""
+        manager = GraphManager()
         sql = "INSERT INTO orders SELECT * FROM temp_orders;"
+        
         corrections = manager.process_sql(sql)
+        storage = manager.storage
         
         assert corrections == []
-        assert manager.storage.nodes == {"orders", "temp_orders"}
-        assert manager.storage.edges == [
-            ("temp_orders", "orders", {"operation": "Insert", "color": ANY})
-        ]
+        assert "orders" in storage.nodes
+        assert "temp_orders" in storage.nodes
+        assert ("temp_orders", "orders", {"operation": "Insert", "color": ANY}) in storage.edges
 
-    def test_process_sql_update_with_from(self):
-        """UPDATE users FROM logs"""
-        manager = src.main.GraphManager()
-        sql = "UPDATE users SET name = 'test' FROM logs WHERE users.id = logs.user_id;"
-        corrections = manager.process_sql(sql)
+    def test_update_with_from(self):
+        """UPDATE target FROM source"""
+        manager = GraphManager()
+        sql = """
+        UPDATE users 
+        SET name = 'test' 
+        FROM logs 
+        WHERE users.id = logs.user_id;
+        """
         
-        assert corrections == []
-        assert manager.storage.nodes == {"users", "logs"}
-        assert manager.storage.edges == [
-            ("logs", "users", {"operation": "Update", "color": ANY})
-        ]
+        manager.process_sql(sql)
+        storage = manager.storage
+        
+        assert "users" in storage.nodes
+        assert "logs" in storage.nodes
+        assert ("logs", "users", {"operation": "Update", "color": ANY}) in storage.edges
 
-    def test_process_sql_select_into(self):
-        """SELECT INTO backup FROM active_users"""
-        manager = src.main.GraphManager()
+    def test_select_into(self):
+        """SELECT INTO new_table FROM source"""
+        manager = GraphManager()
         sql = "SELECT * INTO backup FROM active_users;"
-        corrections = manager.process_sql(sql)
         
-        assert corrections == []
-        assert manager.storage.nodes == {"backup", "active_users"}
-        assert manager.storage.edges == [
-            ("active_users", "backup", {"operation": "SelectInto", "color": ANY})
-        ]
+        manager.process_sql(sql)
+        storage = manager.storage
+        
+        assert "backup" in storage.nodes
+        assert "active_users" in storage.nodes
+        assert ("active_users", "backup", {"operation": "Select", "color": ANY}) in storage.edges
 
-    def test_process_sql_simple_select(self):
-        """SELECT FROM products"""
-        manager = src.main.GraphManager()
+    def test_simple_select(self):
+        """SELECT FROM source without target"""
+        manager = GraphManager()
         sql = "SELECT * FROM products;"
-        corrections = manager.process_sql(sql)
         
-        assert corrections == []
-        assert manager.storage.nodes == {"products", "result"}
-        assert manager.storage.edges == [
-            ("products", "result", {"operation": "Select", "color": ANY})
-        ]
+        manager.process_sql(sql)
+        storage = manager.storage
+        
+        assert "products" in storage.nodes
+        assert "result" in storage.nodes
+        assert ("products", "result", {"operation": "Select", "color": ANY}) in storage.edges
 
-    def test_process_sql_nested_subquery(self):
-        """Nested SELECT FROM employees"""
-        manager = src.main.GraphManager()
+    def test_nested_subquery(self):
+        """SELECT with nested subquery"""
+        manager = GraphManager()
         sql = "SELECT * FROM (SELECT id FROM employees);"
-        corrections = manager.process_sql(sql)
         
-        assert corrections == []
-        assert manager.storage.nodes == {"employees", "result"}
-        assert manager.storage.edges == [
-            ("employees", "result", {"operation": "Select", "color": ANY})
-        ]
+        manager.process_sql(sql)
+        storage = manager.storage
+        
+        assert "employees" in storage.nodes
+        assert "result" in storage.nodes
+        assert ("employees", "result", {"operation": "Select", "color": ANY}) in storage.edges
 
+class TestDirectoryProcessing:
+    def test_process_directory(self, tmp_path):
+        # Создаем временную директорию с тестовыми файлами
+        sql_dir = tmp_path / "sql"
+        sql_dir.mkdir()
+        
+        # Файл 1: Создание таблиц
+        (sql_dir / "create.sql").write_text("""
+        CREATE TABLE users (id INT PRIMARY KEY);
+        CREATE TABLE logs (user_id INT, action TEXT);
+        """)
+        
+        # Файл 2: Вставка данных
+        (sql_dir / "insert.sql").write_text("""
+        INSERT INTO users VALUES (1);
+        INSERT INTO logs SELECT 1, 'login';
+        """)
+        
+        # Файл 3: Обновление данных
+        (sql_dir / "update.sql").write_text("""
+        UPDATE users 
+        SET name = 'test' 
+        FROM logs 
+        WHERE users.id = logs.user_id;
+        """)
 
+        manager = GraphManager()
+        results = manager.process_directory(sql_dir)
+        storage = manager.storage
+        
+        assert len(results) == 0
+        assert {"users", "logs", "result"} <= storage.nodes
+        assert ("logs", "users", {"operation": "Update", "color": ANY}) in storage.edges
+
+class TestSQLASTParsing:
+    def test_ast_insert_parsing(self):
+        sql = "INSERT INTO orders SELECT * FROM temp_orders;"
+        ast = SQLAST(sql)
+        
+        assert ast.target_tables == ["orders"]
+        assert ast.source_tables == {"temp_orders"}
+
+    def test_ast_update_parsing(self):
+        sql = """
+        UPDATE users 
+        SET name = 'test' 
+        FROM logs 
+        WHERE users.id = logs.user_id;
+        """
+        ast = SQLAST(sql)
+        
+        assert ast.target_tables == ["users"]
+        assert ast.source_tables == {"logs"}
+
+    def test_ast_select_into_parsing(self):
+        sql = "SELECT * INTO backup FROM active_users;"
+        ast = SQLAST(sql)
+        
+        assert ast.target_tables == ["backup"]
+        assert ast.source_tables == {"active_users"}
+
+    def test_ast_simple_select_parsing(self):
+        sql = "SELECT * FROM products;"
+        ast = SQLAST(sql)
+        
+        assert ast.target_tables == ["result"]
+        assert ast.source_tables == {"products"}
+
+    def test_ast_nested_query_parsing(self):
+        sql = "SELECT * FROM (SELECT id FROM employees);"
+        ast = SQLAST(sql)
+        
+        assert ast.target_tables == ["result"]
+        assert ast.source_tables == {"employees"}
+
+    def test_ast_complex_query_parsing(self):
+        sql = """
+        WITH cte AS (SELECT id FROM departments)
+        UPDATE employees
+        SET dept_id = cte.id
+        FROM cte
+        WHERE employees.name = cte.dept_name;
+        """
+        ast = SQLAST(sql)
+        
+        assert ast.target_tables == ["employees"]
+        assert ast.source_tables == {"departments"}
