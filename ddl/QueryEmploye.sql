@@ -15,40 +15,28 @@ INSERT INTO Employee (employee_id, first_name, last_name, birth_date, hire_date,
 (14, 'Alina', 'Vorobyeva', '1990-12-05', '2016-04-20', 'Генетик-селекционер', 71000.00, '+79000000015', 'alina@pigeonfarm.com', 'Тюмень, ул. Научная 18', 8, 'Разведение', 7),
 (15, 'Mikhail', 'Sokolov', '1983-10-30', '2012-08-01', 'Главный по снаряжению', 69000.00, '+79000000016', 'mikhail@pigeonfarm.com', 'Пермь, пр. Снарядный 29', 3, 'Логистика', 11);
 
-
-SELECT *
-FROM Employee
+SELECT * 
+FROM Employee 
 WHERE department = 'Тренировка';
 
-
-SELECT first_name, position
-FROM Employee
+SELECT first_name, position 
+FROM Employee 
 WHERE salary > 50000;
-
-
-UPDATE Employee
-SET phone_number = '+79000000017'
-WHERE employee_id = 7;
-
 
 DELETE FROM Employee
 WHERE position = 'Стажер тренера';
-
 
 SELECT first_name, last_name, hire_date
 FROM Employee
 WHERE hire_date BETWEEN '2023-01-01' AND '2023-12-31';
 
-
 SELECT COUNT(*) AS total_employees
 FROM Employee;
-
 
 SELECT first_name, last_name, hire_date
 FROM Employee
 ORDER BY hire_date DESC
 LIMIT 3;
-
 
 SELECT
     e.first_name,
@@ -66,16 +54,13 @@ JOIN (
 ) dep_avg ON e.department = dep_avg.department
 WHERE e.salary > dep_avg.avg_salary;
 
-
 SELECT *
 FROM Employee
 WHERE first_name = 'Anna';
 
-
 SELECT DISTINCT position
 FROM Employee
 ORDER BY position ASC;
-
 
 SELECT *
 FROM (
@@ -86,15 +71,12 @@ FROM (
 ) AS ranked
 WHERE rank <= 3;
 
-
 UPDATE Employee
 SET address = 'Москва, ул. Новая 10'
 WHERE address LIKE 'Москва%';
 
-
 DELETE FROM Employee
 WHERE salary < 40000;
-
 
 SELECT
     email,
@@ -103,17 +85,14 @@ FROM Employee
 GROUP BY email
 HAVING COUNT(*) > 1;
 
-
 SELECT last_name, birth_date
 FROM Employee
 WHERE birth_date < CURRENT_DATE - INTERVAL '40 years';
-
 
 UPDATE Employee
 SET salary = salary * 1.15
 WHERE department = 'Тренировка'
   AND salary < (SELECT AVG(salary) FROM Employee);
-
 
 UPDATE Employee
 SET
@@ -121,3 +100,4 @@ SET
     department = 'Тренировка'
 WHERE position = 'Младший тренер'
   AND experience_years > 2;
+
