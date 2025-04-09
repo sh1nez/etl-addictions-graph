@@ -15,12 +15,12 @@ INSERT INTO Employee (employee_id, first_name, last_name, birth_date, hire_date,
 (14, 'Alina', 'Vorobyeva', '1990-12-05', '2016-04-20', 'Генетик-селекционер', 71000.00, '+79000000015', 'alina@pigeonfarm.com', 'Тюмень, ул. Научная 18', 8, 'Разведение', 7),
 (15, 'Mikhail', 'Sokolov', '1983-10-30', '2012-08-01', 'Главный по снаряжению', 69000.00, '+79000000016', 'mikhail@pigeonfarm.com', 'Пермь, пр. Снарядный 29', 3, 'Логистика', 11);
 
-SELECT * 
-FROM Employee 
+SELECT *
+FROM Employee
 WHERE department = 'Тренировка';
 
-SELECT first_name, position 
-FROM Employee 
+SELECT first_name, position
+FROM Employee
 WHERE salary > 50000;
 
 DELETE FROM Employee
@@ -100,4 +100,3 @@ SET
     department = 'Тренировка'
 WHERE position = 'Младший тренер'
   AND experience_years > 2;
-
