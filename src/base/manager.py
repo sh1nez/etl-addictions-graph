@@ -1,8 +1,8 @@
 from typing import Optional, Tuple, List
-from source.DP import DirectoryParser
-from source.GS import GraphStorage
-from source.GV import GraphVisualizer
-from source.sqlAST import SqlAst
+from base.parse import DirectoryParser
+from base.storage import GraphStorage
+from base.visualize import GraphVisualizer
+from base.parse import SqlAst
 
 
 class GraphManager:

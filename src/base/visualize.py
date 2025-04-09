@@ -1,7 +1,7 @@
 import networkx as nx
 from typing import Optional
 from matplotlib import pyplot as plt
-from source.GS import GraphStorage
+from base.storage import GraphStorage
 
 
 class GraphVisualizer:

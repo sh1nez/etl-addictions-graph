@@ -2,10 +2,12 @@ import re
 import os
 from collections import defaultdict
 from typing import Optional, List
-from main import GraphStorage, SqlAst, GraphVisualizer
+from base.storage import GraphStorage
+from base.parser import SqlAst
+from base.visualize GraphVisualizer
 
 
-class Procedure:
+class Procedure:  # TODO mode it to different files.
     def __init__(self, name: str, code: str) -> None:
         self.name = name
         self.code = code
@@ -34,7 +36,8 @@ class Procedure:
         procedures = []
 
         for i in found:
-            procedures.append(Procedure(i[0], Procedure.__extract_procedure_code(i[1])))
+            procedures.append(
+                Procedure(i[0], Procedure.__extract_procedure_code(i[1])))
 
         return procedures
 
