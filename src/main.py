@@ -5,7 +5,6 @@ from typing import Optional, Tuple, List, Union
 from matplotlib import pyplot as plt
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, DML
 from util.dialect import safe_parse
-import numpy as np
 
 HAS_SQLGLOT = True  # TODO remove it
 
@@ -58,45 +57,35 @@ class GraphVisualizer:
         if not storage.nodes:
             print("Graph is empty, no dependencies to display.")
             return
-        
         G = nx.DiGraph()
         G.add_nodes_from(storage.nodes)
         G.add_edges_from(storage.edges)
-        
-        plt.figure(figsize=(14, 10))
-        
+        plt.figure(figsize=(10, 6))
         try:
-            pos = nx.spring_layout(
-                G,
-                k=20/np.sqrt(len(G.nodes())),
-                iterations=200,
-                seed=42,
-                scale=2.0
-            )
-            
+            pos = nx.spring_layout(G, k=1.2, iterations=100, scale=3, seed=42)
+
+            colors = nx.get_edge_attributes(G, "color").values()
+            labels = nx.get_edge_attributes(G, "operation")
             nx.draw(
                 G,
                 pos,
                 with_labels=True,
                 node_color="lightblue",
-                edge_color="gray",
-                font_size=10,
-                node_size=2500,
-                arrowsize=20,
-                linewidths=0,  # Убрали обводку узлов
-                width=1.5,
-                edgecolors='none'  # Отключили границы
+                edge_color=colors,
+                font_size=9,  # было 10
+                node_size=2200,  # было 2000
             )
-            
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
             if title:
-                plt.title(title, pad=20)
-                
-            plt.tight_layout()
+                plt.title(title)  # ! window still being named as Figure 1
+                # plt.gcf().canvas.manager.set_window_title(title) # was working (at least on Windows)
             plt.show()
-            
         except Exception as e:
             print(f"Error visualizing graph: {e}")
-            print("You may need to run this in an environment that supports matplotlib display.")
+            print(
+                "You may need to run this in an environment that supports matplotlib display."
+            )
+
 
 class SqlAst:
     """Class for building AST of SQL queries."""
