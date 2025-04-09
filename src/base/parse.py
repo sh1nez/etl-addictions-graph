@@ -2,7 +2,7 @@ import os
 from collections import defaultdict
 from typing import Optional, List, Tuple
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Join
-from dialect import safe_parse
+from util.dialect import safe_parse
 from base.storage import Edge
 
 
@@ -78,19 +78,16 @@ class SqlAst:
                 from_table = self.get_table_name(statement.args["from"])
                 # Добавляем зависимость от основной таблицы к результату
                 if isinstance(statement, Select):
-                    dependencies[to_table].add(
-                        Edge(from_table, to_table, statement))
+                    dependencies[to_table].add(Edge(from_table, to_table, statement))
                 else:
                     # Для операций модификации данных (DML)
-                    dependencies[to_table].add(
-                        Edge(from_table, to_table, statement))
+                    dependencies[to_table].add(Edge(from_table, to_table, statement))
 
             # Обработка JOIN в любых запросах
             if "joins" in statement.args and statement.args["joins"]:
                 for join_node in statement.args["joins"]:
                     if "this" in join_node.args:
-                        join_table = self.get_table_name(
-                            join_node.args["this"])
+                        join_table = self.get_table_name(join_node.args["this"])
 
                         # Создаем объект JOIN для графа
                         simple_join = Join()
@@ -136,8 +133,7 @@ class SqlAst:
                 elif isinstance(node, Table):
                     table_name = self.get_table_name(node)
                     # Добавляем прямую зависимость
-                    dependencies[to_table].add(
-                        Edge(table_name, to_table, node))
+                    dependencies[to_table].add(Edge(table_name, to_table, node))
 
         except Exception as e:
             print(f"Error extracting table dependencies: {e}")
@@ -155,8 +151,7 @@ class SqlAst:
             # Обработка списка JOIN'ов
             if "joins" in select_statement.args and select_statement.args["joins"]:
                 for join_node in select_statement.args["joins"]:
-                    joined_table = self.get_table_name(
-                        join_node.args.get("this"))
+                    joined_table = self.get_table_name(join_node.args.get("this"))
                     if base_table and joined_table:
                         # Создаем связь между таблицами
                         dependencies[base_table].add(
@@ -174,10 +169,8 @@ class SqlAst:
         try:
             for node in expr.walk():
                 if isinstance(node, Join):
-                    left_table = self._extract_table_name(
-                        node.args.get("this"))
-                    right_table = self._extract_table_name(
-                        node.args.get("expression"))
+                    left_table = self._extract_table_name(node.args.get("this"))
+                    right_table = self._extract_table_name(node.args.get("expression"))
 
                     if left_table and right_table:
                         # Создаем связь между таблицами
@@ -194,8 +187,7 @@ class SqlAst:
             right_expr = join_node.args.get("expression")
             if left_expr is None or right_expr is None:
                 print(
-                    f"Skipping JOIN due to missing expression: left_expr={
-                        left_expr}, right_expr={right_expr}"
+                    f"Skipping JOIN due to missing expression: left_expr={left_expr}, right_expr={right_expr}"
                 )
                 return
 
@@ -207,13 +199,11 @@ class SqlAst:
 
             # Добавляем зависимость: из right_table в left_table
             if left_table and right_table:
-                dependencies[left_table].add(
-                    Edge(right_table, left_table, join_node))
+                dependencies[left_table].add(Edge(right_table, left_table, join_node))
                 print(f"Added JOIN dependency: {right_table} -> {left_table}")
             else:
                 print(
-                    f"Could not extract both tables from JOIN: left={
-                        left_table}, right={right_table}"
+                    f"Could not extract both tables from JOIN: left={left_table}, right={right_table}"
                 )
         except Exception as e:
             print(f"Error processing JOIN: {e}")

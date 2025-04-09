@@ -1,7 +1,7 @@
 import pytest
 import time
-from src.graph import GraphManager, GraphStorage
-from src.parser.sql_ast import SQLAST
+from src.base.manager import GraphManager
+from src.base.storage import GraphStorage
 
 
 @pytest.fixture
