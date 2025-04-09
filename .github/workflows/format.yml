@@ -1,0 +1,44 @@
+name: Code Format Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  format-check:
+    name: Run Black and Prettier
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install Black
+        run: pip install black
+
+      - name: Run Black in check mode
+        run: black --check .
+
+  eof-check:
+    name: Ensure Files End with Newline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run End of File Newline Check
+        run: |
+          #!/bin/bash
+          find . -type f -exec file {} \; | grep 'text' | cut -d: -f1 | while read -r file; do
+            if [ -n "$(tail -c 1 "$file")" ]; then
+              echo "File '$file' does not end with a newline."
+              exit 1
+            fi
+          done
