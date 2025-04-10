@@ -156,3 +156,27 @@ WHERE pigeon_id IN (
             WHERE breed = p.breed
         )
 );
+
+-- from dml dir
+UPDATE Pigeon
+SET last_check_date = vc.check_date
+FROM VetCheck vc
+WHERE Pigeon.pigeon_id = vc.pigeon_id;
+
+UPDATE Pigeon
+SET status = 'Archived'
+WHERE pigeon_id IN (
+    SELECT p.pigeon_id
+    FROM Pigeon p
+    LEFT JOIN VetCheck vc ON p.pigeon_id = vc.pigeon_id
+    WHERE vc.check_date < CURRENT_DATE - INTERVAL '6 months'
+    OR vc.check_id IS NULL
+);
+
+UPDATE Pigeon
+SET flying_speed = flying_speed * 1.10
+WHERE breed IN (
+    SELECT breed
+    FROM PigeonBreeds
+    WHERE category = 'Sport'
+);
