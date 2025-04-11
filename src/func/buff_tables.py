@@ -2,10 +2,12 @@ import re
 import os
 from collections import defaultdict
 from typing import Optional, List
-from main import GraphStorage, SqlAst, GraphVisualizer
+from base.storage import GraphStorage
+from base.parse import SqlAst
+from base.visualize import GraphVisualizer
 
 
-class Procedure:
+class Procedure:  # TODO mode it to different files.
     def __init__(self, name: str, code: str) -> None:
         self.name = name
         self.code = code
