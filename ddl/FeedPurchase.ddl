@@ -7,7 +7,9 @@ CREATE TABLE FeedPurchase (
     feed_type VARCHAR(50),
     FOREIGN KEY (supplier_id) REFERENCES Supplier(supplier_id)
 );
-
+CREATE PROCEDURE etl_feedpurchase_transforms
+AS
+BEGIN
 INSERT INTO FeedPurchase (supplier_id, purchase_date, quantity_kg, cost, feed_type)
 VALUES (1, '2025-03-01', 120.50, 500.00, 'Corn');
 
@@ -96,3 +98,5 @@ WHERE purchase_date < CURRENT_DATE - DATEADD(day, -25, CURRENT_DATE);
 
 DELETE FROM FeedPurchase
 WHERE cost = (SELECT MIN(cost) FROM FeedPurchase);
+END
+GO
