@@ -1,6 +1,3 @@
-CREATE PROCEDURE etl_feedconsumption_transforms
-AS
-BEGIN
 	CREATE TABLE FeedConsumption (
 	    consumption_id Serial PRIMARY KEY,
 	    pigeon_id INT NOT NULL,
@@ -10,7 +7,9 @@ BEGIN
 	    FOREIGN KEY (pigeon_id) REFERENCES Pigeon(pigeon_id),
 	    FOREIGN KEY (feed_id) REFERENCES FeedPurchase(purchase_id)
 	);
-
+CREATE PROCEDURE etl_feedconsumption_transforms
+AS
+BEGIN
     INSERT INTO FeedConsumption (pigeon_id, feed_id, date, quantity_grams)
     SELECT p.pigeon_id, f.purchase_id, SYSDATETIME(), COALESCE(f.quantity_kg, 1) * 100
     FROM FeedPurchase f
