@@ -1,3 +1,6 @@
+CREATE PROCEDURE etl_feedpurchase_transforms
+AS
+BEGIN
 CREATE TABLE FeedPurchase (
     purchase_id SERIAL PRIMARY KEY,
     supplier_id INT NOT NULL,
@@ -96,3 +99,5 @@ WHERE purchase_date < CURRENT_DATE - DATEADD(day, -25, CURRENT_DATE);
 
 DELETE FROM FeedPurchase
 WHERE cost = (SELECT MIN(cost) FROM FeedPurchase);
+END
+GO
