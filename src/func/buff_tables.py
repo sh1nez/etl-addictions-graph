@@ -3,8 +3,8 @@ import os
 from collections import defaultdict
 from typing import Optional, List
 from base.storage import GraphStorage
-from base.parser import SqlAst
-from base.visualize GraphVisualizer
+from base.parse import SqlAst
+from base.visualize import GraphVisualizer
 
 
 class Procedure:  # TODO mode it to different files.
@@ -36,8 +36,7 @@ class Procedure:  # TODO mode it to different files.
         procedures = []
 
         for i in found:
-            procedures.append(
-                Procedure(i[0], Procedure.__extract_procedure_code(i[1])))
+            procedures.append(Procedure(i[0], Procedure.__extract_procedure_code(i[1])))
 
         return procedures
 
