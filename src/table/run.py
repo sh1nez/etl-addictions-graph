@@ -1,2 +1,4 @@
+from base import run
+
 def main():
-    print("hello from table mode")
+    run.main();
