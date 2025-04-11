@@ -83,6 +83,23 @@ class SqlAst:
                     # Для операций модификации данных (DML)
                     dependencies[to_table].add(Edge(from_table, to_table, statement))
 
+            if isinstance(statement, Merge):
+                # Using определяет таблицу источник
+                if "using" in statement.args and statement.args["using"]:
+                    using_table = self.get_table_name(statement.args["using"])
+                    dependencies[to_table].add(Edge(using_table, to_table, statement))
+
+                # Проверка merge условий
+                if "on" in statement.args and statement.args["on"]:
+                    self._extract_table_dependencies(
+                        statement.args["on"], to_table, dependencies
+                    )
+
+                # Проверка дополнительных условий
+                if "expressions" in statement.args:
+                    for expr in statement.args["expressions"]:
+                        self._extract_table_dependencies(expr, to_table, dependencies)
+
             # Обработка JOIN в любых запросах
             if "joins" in statement.args and statement.args["joins"]:
                 for join_node in statement.args["joins"]:
