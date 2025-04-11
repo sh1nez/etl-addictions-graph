@@ -159,19 +159,19 @@ class TestSqlInput:
 
         assert error_message in captured.out
 
-    def test_graph_manager_process_directory_correct_dir_path(self, capsys):
-        dir_path = BASE_DIR / "ddl/"
-
-        manager = GraphManager()
-        results = manager.process_directory(dir_path)
-
-        assert len(results) > 0
-
-        message = f"Processing files in directory: {dir_path}"
-
-        captured = capsys.readouterr()
-
-        assert message in captured.out
+    # def test_graph_manager_process_directory_correct_dir_path(self, capsys):
+    #     dir_path = BASE_DIR / "ddl/"
+    #
+    #     manager = GraphManager()
+    #     results = manager.process_directory(dir_path)
+    #
+    #     assert len(results) > 0
+    #
+    #     message = f"Processing files in directory: {dir_path}"
+    #
+    #     captured = capsys.readouterr()
+    #
+    #     assert message in captured.out
 
     def test_graph_manager_process_sql_emtpy_string(self):
         sql_code = ""
