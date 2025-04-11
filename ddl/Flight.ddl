@@ -1,6 +1,3 @@
-CREATE PROCEDURE etl_flight_transforms
-AS
-BEGIN
 	CREATE TABLE Flight (
 	    flight_id SERIAL PRIMARY KEY,
 	    pigeon_id INT NOT NULL,
@@ -10,6 +7,9 @@ BEGIN
 	    altitude_meters INT,
 	    FOREIGN KEY (pigeon_id) REFERENCES Pigeon(pigeon_id)
 	);
+CREATE PROCEDURE etl_flight_transforms
+AS
+BEGIN
 	INSERT INTO Flight (pigeon_id, distance_km, duration_minutes, altitude_meters)
     SELECT pigeon_id, 5.5, 30, 150
     FROM Pigeon;
