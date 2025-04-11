@@ -1,6 +1,3 @@
-CREATE PROCEDURE etl_employee_transforms
-AS
-BEGIN
     CREATE TABLE Employee (
     employee_id SERIAL PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
@@ -17,7 +14,9 @@ BEGIN
     experience_years INT,
     FOREIGN KEY (supervisor_id) REFERENCES Employee(employee_id)
     );
-
+CREATE PROCEDURE etl_employee_transforms
+AS
+BEGIN
     INSERT INTO Employee (first_name, last_name, birth_date, hire_date, position, salary, department, experience_years)
     Values('John', 'Doe', SYSDATETIME(), SYSDATETIME(), 'Analyst', 50000, 'Finance', 2);
 
