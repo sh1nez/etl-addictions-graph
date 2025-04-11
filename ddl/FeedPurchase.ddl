@@ -1,6 +1,3 @@
-CREATE PROCEDURE etl_feedpurchase_transforms
-AS
-BEGIN
 CREATE TABLE FeedPurchase (
     purchase_id SERIAL PRIMARY KEY,
     supplier_id INT NOT NULL,
@@ -10,7 +7,9 @@ CREATE TABLE FeedPurchase (
     feed_type VARCHAR(50),
     FOREIGN KEY (supplier_id) REFERENCES Supplier(supplier_id)
 );
-
+CREATE PROCEDURE etl_feedpurchase_transforms
+AS
+BEGIN
 INSERT INTO FeedPurchase (supplier_id, purchase_date, quantity_kg, cost, feed_type)
 VALUES (1, '2025-03-01', 120.50, 500.00, 'Corn');
 
