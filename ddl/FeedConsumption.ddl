@@ -2,7 +2,7 @@ CREATE PROCEDURE etl_feedconsumption_transforms
 AS
 BEGIN
 	CREATE TABLE FeedConsumption (
-	    consumption_id SERIAL PRIMARY KEY,
+	    consumption_id Serial PRIMARY KEY,
 	    pigeon_id INT NOT NULL,
 	    feed_id INT NOT NULL,
 	    date DATE NOT NULL,
@@ -11,13 +11,13 @@ BEGIN
 	    FOREIGN KEY (feed_id) REFERENCES FeedPurchase(purchase_id)
 	);
 
-	INSERT INTO FeedConsumption (pigeon_id, feed_id, date, quantity_grams)
-    SELECT p.pigeon_id, f.purchase_id, SYSDATETIME(), f.quantity_kg * 100
+    INSERT INTO FeedConsumption (pigeon_id, feed_id, date, quantity_grams)
+    SELECT p.pigeon_id, f.purchase_id, SYSDATETIME(), COALESCE(f.quantity_kg, 1) * 100
     FROM FeedPurchase f
     JOIN Pigeon p ON p.loft_id = 1;
 
     UPDATE FeedConsumption
-    SET quantity_grams = quantity_grams * 1.05
+    SET quantity_grams = FLOOR(quantity_grams * 1.05)
     WHERE date >= Dateadd(day, -7, SYSDATETIME());
 
     DELETE FROM FeedConsumption
@@ -40,7 +40,7 @@ BEGIN
     DELETE FROM FeedConsumption
     WHERE date < Dateadd(day, -90, SYSDATETIME());
 
-	INSERT INTO FeedConsumption (pigeon_id, feed_id, date, quantity_grams)
+    INSERT INTO FeedConsumption (pigeon_id, feed_id, date, quantity_grams)
     SELECT pigeon_id, FeedPurchase.purchase_id, SYSDATETIME(), 200
     FROM Pigeon
     JOIN FeedPurchase ON feed_type = 'Grain';
