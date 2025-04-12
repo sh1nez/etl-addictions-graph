@@ -2,6 +2,7 @@ from collections import defaultdict
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Join
 from typing import Union
 from sqlglot.expressions import Select, DML
+from src.util.request_counter import get_analiz
 
 
 class GraphStorage:
@@ -20,6 +21,7 @@ class GraphStorage:
     def __init__(self):
         self.nodes = set()
         self.edges = []
+        self.edge_widths = {}  # Добавляем словарь для хранения толщин линий
 
     def add_dependencies(self, dependencies: defaultdict):
         for to_table, edges in dependencies.items():
@@ -41,11 +43,21 @@ class GraphStorage:
                 elif isinstance(op, Table):
                     edge_data["operation"] = "Reference"
 
+                # Добавляем толщину линии, если она есть в self.edge_widths
+                if op_name in self.edge_widths:
+                    edge_data["width"] = self.edge_widths[op_name]
+                else:
+                    edge_data["width"] = 1.0  # Значение по умолчанию
+
                 self.edges.append((edge.from_table, to_table, edge_data))
+
+    def set_edge_widths(self, edge_widths: dict):
+        self.edge_widths = edge_widths
 
     def clear(self):
         self.nodes.clear()
         self.edges.clear()
+        self.edge_widths.clear()
 
 
 class Edge:

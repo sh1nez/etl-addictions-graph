@@ -1,6 +1,6 @@
 import os
-from base.manager import GraphManager
-from base.storage import GraphStorage
+from manager import GraphManager
+from storage import GraphStorage
 
 
 def main():
@@ -27,8 +27,7 @@ def main():
         directory = input("Enter the directory path containing SQL files: ")
         choice = input("Display graphs separately for each file? (y/n): ")
         if choice.lower() == "y":
-            parse_results = manager.parser.parse_directory(
-                directory, sep_parse=True)
+            parse_results = manager.parser.parse_directory(directory, sep_parse=True)
             for dependencies, corrections, file_path in parse_results:
                 print(f"\nFile: {file_path}")
                 if corrections:
@@ -38,9 +37,9 @@ def main():
                 temp_storage = GraphStorage()
                 temp_storage.add_dependencies(dependencies)
                 manager.visualizer.render(
-                    temp_storage, f"Dependencies for {
-                        os.path.basename(file_path)}"
+                    temp_storage, f"Dependencies for {os.path.basename(file_path)}"
                 )
+
         else:
             results = manager.process_directory(directory)
             for file_path, corrections in results:
