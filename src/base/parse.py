@@ -4,6 +4,7 @@ from typing import Optional, List, Tuple
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Join
 from util.dialect import safe_parse
 from base.storage import Edge
+from logger_config import logger
 
 
 class SqlAst:
@@ -36,8 +37,9 @@ class SqlAst:
             self.parsed, self.dialect = safe_parse(self.corrected_sql)
             assert self.parsed is not None
             self.dependencies = self._extract_dependencies()
+            logger.info("SQL parsed and dependencies extracted successfully.")
         except Exception as e:
-            print(f"Error parsing SQL: {e}")
+            logger.error(f"Error parsing SQL: {e}")
             self.parsed = None
             self.dependencies = defaultdict(set)
             self.corrections.append(f"Error parsing SQL: {str(e)}")
@@ -66,7 +68,7 @@ class SqlAst:
                 self._process_statement_tree(statement, to_table, dependencies)
 
         except Exception as e:
-            print(f"Error in dependency extraction: {e}")
+            logger.error(f"Error in dependency extraction: {e}")
 
         return dependencies
 
@@ -136,7 +138,7 @@ class SqlAst:
                 )
 
         except Exception as e:
-            print(f"Error processing statement tree: {e}")
+            logger.error(f"Error processing statement tree: {e}")
 
     def _extract_table_dependencies(self, expression, to_table, dependencies):
         """Извлекает зависимости от таблиц из выражения."""
@@ -153,7 +155,7 @@ class SqlAst:
                     dependencies[to_table].add(Edge(table_name, to_table, node))
 
         except Exception as e:
-            print(f"Error extracting table dependencies: {e}")
+            logger.error(f"Error extracting table dependencies: {e}")
 
     def _extract_join_dependencies(self, select_statement, dependencies):
         """Extract JOIN dependencies from a SELECT statement."""
@@ -179,7 +181,7 @@ class SqlAst:
             self._find_nested_joins(from_clause, dependencies)
 
         except Exception as e:
-            print(f"Error extracting JOIN dependencies: {e}")
+            logger.error(f"Error extracting JOIN dependencies: {e}")
 
     def _find_nested_joins(self, expr, dependencies):
         """Find nested JOIN operations within expressions."""
@@ -195,7 +197,7 @@ class SqlAst:
                             Edge(right_table, left_table, node)
                         )
         except Exception as e:
-            print(f"Error processing nested JOINs: {e}")
+            logger.error(f"Error processing nested JOINs: {e}")
 
     def _process_join(self, join_node, dependencies):
         """Process a single JOIN node and extract table dependencies."""
@@ -223,7 +225,7 @@ class SqlAst:
                     f"Could not extract both tables from JOIN: left={left_table}, right={right_table}"
                 )
         except Exception as e:
-            print(f"Error processing JOIN: {e}")
+            logger.error(f"Error processing JOIN: {e}")
 
     def _extract_table_name(self, expr):
         """Helper method to extract table name from an expression."""
@@ -300,7 +302,7 @@ class SqlAst:
             # Если не нашли таблицу
             return f"unknown {self._get_unknown_id()}"
         except Exception as e:
-            print(f"Error in get_table_name: {e}")
+            logger.error(f"Error in get_table_name: {e}")
             return f"unknown {self._get_unknown_id()}"
 
     def get_first_from(self, stmt) -> Optional[str]:
@@ -323,7 +325,7 @@ class SqlAst:
                     return self.get_table_name(value.args["from"])
 
         except Exception as e:
-            print(f"Error in get_first_from: {e}")
+            logger.error(f"Error in get_first_from: {e}")
         return None
 
     def find_all(self, expr_type, obj=None):
@@ -373,18 +375,19 @@ class DirectoryParser:
     ) -> List[Tuple[defaultdict, List[str], str]]:
         results = []
         if not os.path.exists(directory):
-            print(f"Error: Directory {directory} does not exist!")
+            logger.error(f"Directory {directory} does not exist!")
             return results
         if not os.path.isdir(directory):
-            print(f"Error: {directory} is not a directory!")
+            logger.error(f"{directory} is not a directory!")
             return results
-        print(f"Processing files in directory: {directory}")
+        logger.info(f"Processing files in directory: {directory}")
+
         for root, _, files in os.walk(directory):
-            print(f"Processing directory: {root}")
+            logger.debug(f"Scanning directory: {root}")
             for file in files:
                 if file.endswith(".sql"):
                     file_path = os.path.join(root, file)
-                    print(f"Reading file: {file_path}")
+                    logger.info(f"Reading file: {file_path}")
                     try:
                         with open(file_path, "r", encoding="utf-8") as f:
                             sql_code = f.read()
@@ -397,7 +400,7 @@ class DirectoryParser:
                                 )
                             )
                     except Exception as e:
-                        print(f"Error processing file {file_path}: {e}")
+                        logger.error(f"Error processing file {file_path}: {e}")
                         results.append(
                             (defaultdict(set), [f"Error: {str(e)}"], file_path)
                         )

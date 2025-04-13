@@ -2,52 +2,55 @@ import networkx as nx
 from typing import Optional
 from matplotlib import pyplot as plt
 from base.storage import GraphStorage
+from logger_config import logger
 
 
 class GraphVisualizer:
-    """Class for visualizing dependency graphs."""
-
     def render(self, storage: GraphStorage, title: Optional[str] = None):
         if not storage.nodes:
-            print("Graph is empty, no dependencies to display.")
+            logger.warning("Graph is empty, no dependencies to display.")
             return
+
+        logger.debug("Инициализация визуализации графа.")
         G = nx.DiGraph()
         G.add_nodes_from(storage.nodes)
         G.add_edges_from(storage.edges)
-        plt.figure(figsize=(12, 8))
+
+        logger.debug(
+            f"Добавлено {len(storage.nodes)} узлов и {len(storage.edges)} рёбер."
+        )
+
+        plt.figure(figsize=(10, 6))
+
         try:
-            pos = nx.spring_layout(G, k=0.5, iterations=50)  # Улучшаем layout
+            logger.debug("Расчёт позиционирования узлов с помощью spring_layout.")
+            pos = nx.spring_layout(G, k=1.2, iterations=100, scale=3, seed=42)
 
-            # Получаем цвета рёбер
-            edge_colors = [data["color"] for u, v, data in G.edges(data=True)]
+            colors = nx.get_edge_attributes(G, "color").values()
+            labels = nx.get_edge_attributes(G, "operation")
 
-            # Подготовка меток для рёбер
-            edge_labels = {}
-            for u, v, data in G.edges(data=True):
-                # Берем только имя операции без деталей
-                label = data.get("operation", "")
-                edge_labels[(u, v)] = label
-
-            # Отрисовка графа
+            logger.debug("Отрисовка графа.")
             nx.draw(
                 G,
                 pos,
                 with_labels=True,
                 node_color="lightblue",
-                edge_color=edge_colors,
-                font_size=10,
-                node_size=2000,
-                arrows=True,
-                arrowsize=15,
+                edge_color=colors,
+                font_size=9,
+                node_size=2200,
             )
-            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=9)
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
 
             if title:
                 plt.title(title)
+                logger.debug(f"Заголовок графа: {title}")
+
             plt.tight_layout()
             plt.show()
+            logger.info("Graph rendered successfully.")
+
         except Exception as e:
-            print(f"Error visualizing graph: {e}")
-            print(
-                "You may need to run this in an environment that supports matplotlib display."
+            logger.error(f"Error visualizing graph: {e}")
+            logger.debug(
+                "Check if matplotlib display is supported in your environment."
             )
