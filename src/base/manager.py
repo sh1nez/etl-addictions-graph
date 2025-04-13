@@ -2,7 +2,7 @@ from typing import Optional, Tuple, List
 from base.parse import DirectoryParser, SqlAst
 from base.storage import GraphStorage
 from base.visualize import GraphVisualizer
-from logger_config import logger  # Централизованный логгер
+from logger_config import logger
 
 
 class GraphManager:
