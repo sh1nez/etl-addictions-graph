@@ -43,32 +43,50 @@ class SqlAst:
             self.corrections.append(f"Error parsing SQL: {str(e)}")
 
     def _extract_dependencies(self) -> defaultdict:
-        """Extracts dependencies between tables and operations including ETL, SELECT and JOIN queries."""
+        """Extracts dependencies between tables and operations."""
         dependencies = defaultdict(set)
         etl_types = (Insert, Update, Delete, Merge)
+
         try:
             for statement in self.parsed:
-                # Сначала определяем целевую таблицу (для операций модификации данных)
-                to_table = None
-                if isinstance(statement, etl_types):
-                    if "this" in statement.args:
-                        to_table = self.get_table_name(statement)
-                elif (
-                    isinstance(statement, Select)
-                    and hasattr(statement, "into")
-                    and statement.into is not None
-                ):
-                    to_table = self.get_table_name(statement.into)
-                else:
-                    to_table = f"result {self._get_output_id()}"
+                to_table = self._resolve_target_table(statement)
 
-                # Обрабатываем основной запрос и все подзапросы
+                # Добавляем входные узлы для исходных таблиц
+                self._add_input_nodes(statement, to_table, dependencies)
+
+                # Обрабатываем зависимости
                 self._process_statement_tree(statement, to_table, dependencies)
 
         except Exception as e:
             print(f"Error in dependency extraction: {e}")
 
         return dependencies
+
+    def _add_input_nodes(self, statement, to_table, dependencies):
+        """Создает входные узлы для исходных таблиц без явных зависимостей."""
+        if isinstance(statement, Insert) and not self._has_explicit_source(statement):
+            input_node = f"input_{to_table}_{self._get_input_id()}"
+            dependencies[to_table].add(Edge(input_node, to_table, statement))
+
+        elif isinstance(statement, (Update, Delete)) and 'from' not in statement.args:
+            input_node = f"input_{to_table}_{self._get_input_id()}"
+            dependencies[to_table].add(Edge(input_node, to_table, statement))
+
+    def _has_explicit_source(self, statement):
+        """Проверяет, есть ли у оператора явный источник данных."""
+        if isinstance(statement, Insert):
+            return 'from' in statement.args or 'expression' in statement.args
+        elif isinstance(statement, (Update, Delete)):
+            return 'from' in statement.args
+        return True
+
+    def _resolve_target_table(self, statement):
+        """Определяет целевую таблицу для операции."""
+        if isinstance(statement, (Insert, Update, Delete, Merge)):
+            return self.get_table_name(statement)
+        elif isinstance(statement, Select) and hasattr(statement, 'into'):
+            return self.get_table_name(statement.into)
+        return f"result_{self._get_output_id()}"
 
     def _process_statement_tree(self, statement, to_table, dependencies):
         """Рекурсивно обрабатывает запрос и его подзапросы для извлечения зависимостей."""
