@@ -4,6 +4,14 @@ from typing import Union
 from sqlglot.expressions import Select, DML
 
 
+class BuffRead:
+    pass
+
+
+class BuffWrite:
+    pass
+
+
 class GraphStorage:
     """Class for storing dependency graph data."""
 
@@ -15,6 +23,8 @@ class GraphStorage:
         Select: "purple",
         Join: "orange",
         Table: "cyan",  # Для прямых ссылок на таблицы
+        BuffWrite: "green",  # Для прямых ссылок на таблицы
+        BuffRead: "blue",  # Для прямых ссылок на таблицы
     }
 
     def __init__(self):
