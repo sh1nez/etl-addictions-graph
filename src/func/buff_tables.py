@@ -251,7 +251,13 @@ def run():
                 temp_storage = GraphStorage()
                 temp_storage.add_dependencies(dependencies)
                 manager.visualizer.render(
+<<<<<<< HEAD
                     temp_storage, f"Dependencies for { os.path.basename(file_path)}"
+=======
+                    temp_storage,
+                    f"Dependencies for {
+                        os.path.basename(file_path)}",
+>>>>>>> 89818cf (fix: buff tables (#46))
                 )
         else:
             results = manager.process_directory(directory)

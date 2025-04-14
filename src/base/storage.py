@@ -22,6 +22,14 @@ class BuffWrite:
     pass
 
 
+class BuffRead:
+    pass
+
+
+class BuffWrite:
+    pass
+
+
 class GraphStorage:
     """Class for storing dependency graph data."""
 
