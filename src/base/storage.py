@@ -4,7 +4,6 @@ from typing import Union
 from sqlglot.expressions import Select, DML
 from src.util.request_counter import get_analiz
 
-
 class GraphStorage:
     """Class for storing dependency graph data."""
 
@@ -51,17 +50,11 @@ class GraphStorage:
 
                 self.edges.append((edge.from_table, to_table, edge_data))
 
-    def set_edge_widths(self, edge_widths: dict):
+    def set_edge_widths(self, file_path: str):
+        _, edge_widths = get_analiz(file_path)
         self.edge_widths = edge_widths
 
     def clear(self):
         self.nodes.clear()
         self.edges.clear()
         self.edge_widths.clear()
-
-
-class Edge:
-    def __init__(self, from_table: str, to_table: str, op: Union[DML, Select]):
-        self.from_table = from_table
-        self.to_table = to_table
-        self.op = op  # operation

@@ -1,8 +1,7 @@
 import networkx as nx
 from typing import Optional
 from matplotlib import pyplot as plt
-from storage import GraphStorage
-
+from base.storage import GraphStorage
 
 class GraphVisualizer:
     """Class for visualizing dependency graphs."""
@@ -11,8 +10,7 @@ class GraphVisualizer:
         self,
         storage: GraphStorage,
         title: Optional[str] = None,
-        edge_widths: Optional[list] = None,
-    ):  # Добавлен параметр edge_widths
+    ):
         if not storage.nodes:
             print("Graph is empty, no dependencies to display.")
             return
@@ -34,8 +32,7 @@ class GraphVisualizer:
                 edge_labels[(u, v)] = label
 
             # Определяем толщину линий
-            if edge_widths is None:
-                edge_widths = [1.0] * len(G.edges)  # По умолчанию толщина 1.0
+            edge_widths = [data.get("width", 1.0) for u, v, data in G.edges(data=True)]
 
             # Отрисовка графа
             nx.draw(
