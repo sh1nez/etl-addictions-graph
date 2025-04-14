@@ -2,15 +2,7 @@ from collections import defaultdict
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Join
 from typing import Union
 from sqlglot.expressions import Select, DML
-
-
-class BuffRead:
-    pass
-
-
-class BuffWrite:
-    pass
-
+from src.util.request_counter import get_analiz
 
 class GraphStorage:
     """Class for storing dependency graph data."""
@@ -23,13 +15,12 @@ class GraphStorage:
         Select: "purple",
         Join: "orange",
         Table: "cyan",  # Для прямых ссылок на таблицы
-        BuffWrite: "green",  # Для прямых ссылок на таблицы
-        BuffRead: "blue",  # Для прямых ссылок на таблицы
     }
 
     def __init__(self):
         self.nodes = set()
         self.edges = []
+        self.edge_widths = {}  # Добавляем словарь для хранения толщин линий
 
     def add_dependencies(self, dependencies: defaultdict):
         for to_table, edges in dependencies.items():
@@ -51,15 +42,19 @@ class GraphStorage:
                 elif isinstance(op, Table):
                     edge_data["operation"] = "Reference"
 
+                # Добавляем толщину линии, если она есть в self.edge_widths
+                if op_name in self.edge_widths:
+                    edge_data["width"] = self.edge_widths[op_name]
+                else:
+                    edge_data["width"] = 1.0  # Значение по умолчанию
+
                 self.edges.append((edge.from_table, to_table, edge_data))
+
+    def set_edge_widths(self, file_path: str):
+        _, edge_widths = get_analiz(file_path)
+        self.edge_widths = edge_widths
 
     def clear(self):
         self.nodes.clear()
         self.edges.clear()
-
-
-class Edge:
-    def __init__(self, from_table: str, to_table: str, op: Union[DML, Select]):
-        self.from_table = from_table
-        self.to_table = to_table
-        self.op = op  # operation
+        self.edge_widths.clear()

@@ -3,11 +3,14 @@ from typing import Optional
 from matplotlib import pyplot as plt
 from base.storage import GraphStorage
 
-
 class GraphVisualizer:
     """Class for visualizing dependency graphs."""
 
-    def render(self, storage: GraphStorage, title: Optional[str] = None):
+    def render(
+        self,
+        storage: GraphStorage,
+        title: Optional[str] = None,
+    ):
         if not storage.nodes:
             print("Graph is empty, no dependencies to display.")
             return
@@ -28,6 +31,9 @@ class GraphVisualizer:
                 label = data.get("operation", "")
                 edge_labels[(u, v)] = label
 
+            # Определяем толщину линий
+            edge_widths = [data.get("width", 1.0) for u, v, data in G.edges(data=True)]
+
             # Отрисовка графа
             nx.draw(
                 G,
@@ -35,6 +41,7 @@ class GraphVisualizer:
                 with_labels=True,
                 node_color="lightblue",
                 edge_color=edge_colors,
+                width=edge_widths,  # Используем толщину линий
                 font_size=10,
                 node_size=2000,
                 arrows=True,
