@@ -3,14 +3,16 @@ import networkx as nx
 from collections import defaultdict
 from typing import Optional, Tuple, List, Union
 from matplotlib import pyplot as plt
-from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, DML
+from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Expression
 from util.dialect import safe_parse
+from util.columns import parse_columns
+
 
 HAS_SQLGLOT = True  # TODO remove it
 
 
 class Edge:
-    def __init__(self, from_table: Table, op: Union[DML, Select]):
+    def __init__(self, from_table: Table, op: Expression):
         self.from_table = from_table
         self.op = op  # operation
 
@@ -26,9 +28,10 @@ class GraphStorage:
         Select: "purple",
     }
 
-    def __init__(self):
+    def __init__(self, column_parse: Optional[bool] = True):
         self.nodes = set()
-        self.edges: list[Edge] = []
+        self.edges = []
+        self.column_parse = column_parse
 
     def add_dependencies(self, dependencies: defaultdict):
         for to_table, edges in dependencies.items():
@@ -37,13 +40,26 @@ class GraphStorage:
                 self.nodes.add(edge.from_table)
                 op_name = type(edge.op).__name__
                 op_color = self.COLORS.get(type(edge.op), "gray")
-                self.edges.append(
-                    (
-                        edge.from_table,
-                        to_table,
-                        {"operation": op_name, "color": op_color},
+                if self.column_parse:
+                    self.edges.append(
+                        (
+                            edge.from_table,
+                            to_table,
+                            {
+                                "operation": op_name,
+                                "color": op_color,
+                                "columns": parse_columns(edge.op),
+                            },
+                        )
                     )
-                )
+                else:
+                    self.edges.append(
+                        (
+                            edge.from_table,
+                            to_table,
+                            {"operation": op_name, "color": op_color},
+                        )
+                    )
 
     def clear(self):
         self.nodes.clear()
