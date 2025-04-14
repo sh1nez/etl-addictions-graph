@@ -2,8 +2,8 @@ import os
 from collections import defaultdict
 from typing import Optional, List, Tuple
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Join
-from storage import Edge
 from util.dialect import safe_parse
+from base.storage import Edge
 
 
 class SqlAst:
