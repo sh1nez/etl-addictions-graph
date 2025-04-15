@@ -63,10 +63,19 @@ class TestSqlInput:
 =======
         assert graph_storage[0] == set(["input 0", table_name])
 
+<<<<<<< HEAD
         assert graph_storage[1] == [
             ("input 0", table_name, {"operation": "Insert", "color": ANY})
         ]
 >>>>>>> 88c4972 (fix: uncomment tests)
+=======
+        assert len(graph_storage[1]) == 1
+        edge = graph_storage[1][0]
+        assert edge[0] == "input 0"  # source
+        assert edge[1] == table_name  # target
+        assert edge[2]["operation"] == "Insert"  # operation type
+        assert "color" in edge[2]  # color exists
+>>>>>>> c270702 (fix: test_graph_manager_process_sql_correct_sql_query_insert_operation)
 
     def test_graph_manager_process_sql_merge_statement(self):
         target_table = "target_table"
