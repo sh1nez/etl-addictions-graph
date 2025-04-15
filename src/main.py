@@ -1,21 +1,24 @@
-import func.run
+import sys
+
 import field.run
+import func.run
 import table.run
+from util.cli import parse_arguments
 
 
 def main():
-    print("Run mode: (1 - table; 2 - field; 3 - functional)")
-    while True:
-        choice = input("Input your mode: ")
-        if choice == "1":
-            table.run.main()
-        elif choice == "2":
-            field.run.main()
-        elif choice == "3":
-            func.run.main()
-        else:
-            continue
-        break
+    """Main function that processes command line arguments"""
+    args = parse_arguments()
+
+    if args.mode == "table":
+        table.run.process_args(args)
+    elif args.mode == "field":
+        field.run.process_args(args)
+    elif args.mode == "functional":
+        func.run.process_args(args)
+    else:
+        print(f"Error: Unknown mode {args.mode}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
