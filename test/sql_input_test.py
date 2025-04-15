@@ -38,6 +38,7 @@ class TestSqlInput:
 
         graph_storage = (manager.storage.nodes, manager.storage.edges)
 
+<<<<<<< HEAD
         assert graph_storage[0] == {"input 0", table_name}
 
         # Проверка ребер (убираем дубликаты)
@@ -59,6 +60,13 @@ class TestSqlInput:
         assert edge[0] == "input 0"  # source
         assert edge[1] == table_name  # target
         assert dict(edge[2]) == {"operation": "Insert", "color": "red"}
+=======
+        assert graph_storage[0] == set(["input 0", table_name])
+
+        assert graph_storage[1] == [
+            ("input 0", table_name, {"operation": "Insert", "color": ANY})
+        ]
+>>>>>>> 88c4972 (fix: uncomment tests)
 
     def test_graph_manager_process_sql_merge_statement(self):
         target_table = "target_table"
@@ -159,19 +167,19 @@ class TestSqlInput:
 
         assert error_message in captured.out
 
-    # def test_graph_manager_process_directory_correct_dir_path(self, capsys):
-    #     dir_path = BASE_DIR / "ddl/"
-    #
-    #     manager = GraphManager()
-    #     results = manager.process_directory(dir_path)
-    #
-    #     assert len(results) > 0
-    #
-    #     message = f"Processing files in directory: {dir_path}"
-    #
-    #     captured = capsys.readouterr()
-    #
-    #     assert message in captured.out
+    def test_graph_manager_process_directory_correct_dir_path(self, capsys):
+        dir_path = BASE_DIR / "ddl/"
+
+        manager = GraphManager()
+        results = manager.process_directory(dir_path)
+
+        assert len(results) > 0
+
+        message = f"Processing files in directory: {dir_path}"
+
+        captured = capsys.readouterr()
+
+        assert message in captured.out
 
     def test_graph_manager_process_sql_emtpy_string(self):
         sql_code = ""
