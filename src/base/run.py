@@ -1,32 +1,28 @@
 import os
+
 from base.manager import GraphManager
 from base.storage import GraphStorage
 
 
-def main():
+def process_args(args):
+    """Processing command line arguments for table mode"""
     manager = GraphManager()
-    print("SQL Syntax Corrector and Dependency Analyzer")
-    print("-------------------------------------------")
-    choice = input("Would you like to enter SQL code manually? (y/n): ")
-    if choice.lower() == "y":
-        print("Enter your SQL code (type 'END' on a new line to finish):")
-        sql_lines = []
-        while True:
-            line = input()
-            if line.upper() == "END":
-                break
-            sql_lines.append(line)
-        sql_code = "\n".join(sql_lines)
+
+    separate = args.separate_graph.lower() == "true"
+
+    if args.sql_code:
+        sql_code = args.sql_code
         corrections = manager.process_sql(sql_code)
         if corrections:
             print("\nCorrections made:")
             for i, correction in enumerate(corrections, 1):
                 print(f"{i}. {correction}")
         manager.visualize("Dependencies Graph")
-    else:
-        directory = input("Enter the directory path containing SQL files: ")
-        choice = input("Display graphs separately for each file? (y/n): ")
-        if choice.lower() == "y":
+        return
+
+    if args.directory_path:
+        directory = args.directory_path
+        if separate:
             parse_results = manager.parser.parse_directory(directory, sep_parse=True)
             for dependencies, corrections, file_path in parse_results:
                 print(f"\nFile: {file_path}")
@@ -49,7 +45,4 @@ def main():
                     for i, correction in enumerate(corrections, 1):
                         print(f"{i}. {correction}")
             manager.visualize("Full Dependencies Graph")
-
-
-if __name__ == "__main__":
-    main()
+            return
