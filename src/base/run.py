@@ -1,6 +1,6 @@
 import os
-from manager import GraphManager
-from storage import GraphStorage
+from base.manager import GraphManager
+from base.storage import GraphStorage
 
 
 def main():
