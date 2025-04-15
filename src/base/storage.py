@@ -2,7 +2,7 @@ from collections import defaultdict
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Join
 from typing import Union
 from sqlglot.expressions import Select, DML
-from src.util.request_counter import get_analiz
+from util.request_counter import get_analiz
 
 
 class GraphStorage:
