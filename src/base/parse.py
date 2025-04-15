@@ -1,7 +1,17 @@
+from functools import total_ordering
 import os
 from collections import defaultdict
 from typing import Optional, List, Tuple
-from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Join
+from sqlglot.expressions import (
+    Update,
+    Insert,
+    Table,
+    Delete,
+    Merge,
+    Select,
+    Join,
+    Values,
+)
 from util.dialect import safe_parse
 from base.storage import Edge
 
@@ -31,6 +41,7 @@ class SqlAst:
         self.output_id = SqlAst._output_id
         self.unknown_id = SqlAst._unknown_id
         self.sep_parse = sep_parse
+        self._statement_count = 0
 
         try:
             self.parsed, self.dialect = safe_parse(self.corrected_sql)
@@ -49,6 +60,7 @@ class SqlAst:
         try:
             for statement in self.parsed:
                 # Сначала определяем целевую таблицу (для операций модификации данных)
+                self._statement_count += 1
                 to_table = None
                 if isinstance(statement, etl_types):
                     if "this" in statement.args:
@@ -61,6 +73,9 @@ class SqlAst:
                     to_table = self.get_table_name(statement.into)
                 else:
                     to_table = f"result {self._get_output_id()}"
+                if isinstance(statement, Insert):
+                    input_node = f"input {self._statement_count - 1}"  # уникальное имя
+                    dependencies[to_table].add(Edge(input_node, to_table, statement))
 
                 # Обрабатываем основной запрос и все подзапросы
                 self._process_statement_tree(statement, to_table, dependencies)
@@ -128,6 +143,10 @@ class SqlAst:
                 expr = statement.args["expression"]
                 if isinstance(expr, Select):
                     self._process_statement_tree(expr, to_table, dependencies)
+
+                if isinstance(expr, Values):
+                    from_table = f"input {self._get_output_id()}"
+                    dependencies[to_table].add(Edge(from_table, to_table, statement))
 
             # Обработка WHERE условий, которые могут содержать подзапросы
             if "where" in statement.args and statement.args["where"] is not None:
@@ -382,7 +401,7 @@ class DirectoryParser:
         for root, _, files in os.walk(directory):
             print(f"Processing directory: {root}")
             for file in files:
-                if file.endswith(".sql"):
+                if file.endswith(".ddl"):
                     file_path = os.path.join(root, file)
                     print(f"Reading file: {file_path}")
                     try:
