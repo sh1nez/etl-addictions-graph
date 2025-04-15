@@ -13,7 +13,7 @@ networkx==3.4.2
 nodeenv==1.9.1
 numpy==2.2.4
 packaging==24.2
-pillow==11.2.0
+pillow==11.2.1
 platformdirs==4.3.7
 pluggy==1.5.0
 pre_commit==4.2.0

@@ -1,7 +1,17 @@
+from functools import total_ordering
 import os
 from collections import defaultdict
 from typing import Optional, List, Tuple
-from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Join
+from sqlglot.expressions import (
+    Update,
+    Insert,
+    Table,
+    Delete,
+    Merge,
+    Select,
+    Join,
+    Values,
+)
 from util.dialect import safe_parse
 from base.storage import Edge
 from logger_config import logger
@@ -130,6 +140,10 @@ class SqlAst:
                 expr = statement.args["expression"]
                 if isinstance(expr, Select):
                     self._process_statement_tree(expr, to_table, dependencies)
+
+                if isinstance(expr, Values):
+                    from_table = f"input {self._get_output_id()}"
+                    dependencies[to_table].add(Edge(from_table, to_table, statement))
 
             # Обработка WHERE условий, которые могут содержать подзапросы
             if "where" in statement.args and statement.args["where"] is not None:
@@ -385,7 +399,7 @@ class DirectoryParser:
         for root, _, files in os.walk(directory):
             logger.debug(f"Scanning directory: {root}")
             for file in files:
-                if file.endswith(".sql"):
+                if file.endswith(".ddl"):
                     file_path = os.path.join(root, file)
                     logger.info(f"Reading file: {file_path}")
                     try:

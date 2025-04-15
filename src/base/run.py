@@ -1,66 +1,79 @@
 import os
 from base.manager import GraphManager
 from base.storage import GraphStorage
-from logger_config import logger
+from logger_config import logger  # Импорт логгера
 
 
 def main():
-    logger.info("Приложение запущено.")
+    logger.info("Запуск модуля анализа SQL")
     manager = GraphManager()
 
+    logger.debug("Инициализация интерфейса")
     print("SQL Syntax Corrector and Dependency Analyzer")
     print("-------------------------------------------")
 
-    choice = input("Would you like to enter SQL code manually? (y/n): ").strip().lower()
-    logger.debug(f"Режим ввода: {'ручной' if choice == 'y' else 'директория'}")
+    try:
+        # Логирование выбора режима
+        choice = (
+            input("Would you like to enter SQL code manually? (y/n): ").strip().lower()
+        )
+        logger.debug(f"Режим ввода: {'ручной' if choice == 'y' else 'директория'}")
 
-    if choice == "y":
-        print("Enter your SQL code (type 'END' on a new line to finish):")
-        sql_lines = []
-        while True:
-            line = input()
-            if line.upper() == "END":
-                break
-            sql_lines.append(line)
+        if choice == "y":
+            logger.info("Начало ручного ввода SQL")
+            print("Enter your SQL code (type 'END' on a new line to finish):")
+            sql_lines = []
+            while True:
+                line = input()
+                if line.upper() == "END":
+                    break
+                sql_lines.append(line)
+            sql_code = "\n".join(sql_lines)
 
-        sql_code = "\n".join(sql_lines)
-        logger.debug("Получен SQL-код от пользователя.")
-
-        try:
+            logger.debug("Обработка SQL-кода")
             corrections = manager.process_sql(sql_code)
+
             if corrections:
+                logger.info(f"Внесено исправлений: {len(corrections)}")
                 print("\nCorrections made:")
                 for i, correction in enumerate(corrections, 1):
                     print(f"{i}. {correction}")
-                logger.info(f"Внесено исправлений: {len(corrections)}")
+            else:
+                logger.debug("SQL не требовал исправлений")
+
             manager.visualize("Dependencies Graph")
-        except Exception as e:
-            logger.error(f"Ошибка при обработке SQL: {e}")
 
-    else:
-        directory = input("Enter the directory path containing SQL files: ").strip()
-        logger.debug(f"Указана директория: {directory}")
+        else:
+            directory = input("Enter the directory path containing SQL files: ").strip()
+            logger.debug(f"Обработка директории: {directory}")
 
-        choice = (
-            input("Display graphs separately for each file? (y/n): ").strip().lower()
-        )
-        separate = choice == "y"
-        logger.debug(f"Отображать графы отдельно: {separate}")
+            choice = (
+                input("Display graphs separately for each file? (y/n): ")
+                .strip()
+                .lower()
+            )
+            sep_parse = choice == "y"
+            logger.debug(
+                f"Режим раздельной визуализации: {'включен' if sep_parse else 'выключен'}"
+            )
 
-        try:
-            if separate:
+            if sep_parse:
+                logger.info("Запуск раздельного парсинга файлов")
                 parse_results = manager.parser.parse_directory(
                     directory, sep_parse=True
                 )
+
                 for dependencies, corrections, file_path in parse_results:
+                    logger.debug(f"Обработка файла: {file_path}")
                     print(f"\nFile: {file_path}")
+
                     if corrections:
+                        logger.info(
+                            f"Файл {file_path}: исправлений — {len(corrections)}"
+                        )
                         print("Corrections made:")
                         for i, correction in enumerate(corrections, 1):
                             print(f"{i}. {correction}")
-                        logger.info(
-                            f"{file_path}: Внесено исправлений — {len(corrections)}"
-                        )
 
                     temp_storage = GraphStorage()
                     temp_storage.add_dependencies(dependencies)
@@ -69,21 +82,28 @@ def main():
                         f"Dependencies for {os.path.basename(file_path)}",
                     )
             else:
+                logger.info("Запуск пакетной обработки")
                 results = manager.process_directory(directory)
+
                 for file_path, corrections in results:
+                    logger.debug(f"Обработка файла: {file_path}")
                     print(f"\nFile: {file_path}")
+
                     if corrections:
+                        logger.info(
+                            f"Файл {file_path}: исправлений — {len(corrections)}"
+                        )
                         print("Corrections made:")
                         for i, correction in enumerate(corrections, 1):
                             print(f"{i}. {correction}")
-                        logger.info(
-                            f"{file_path}: Внесено исправлений — {len(corrections)}"
-                        )
-                manager.visualize("Full Dependencies Graph")
-        except Exception as e:
-            logger.error(f"Ошибка при обработке файлов в директории: {e}")
 
-    logger.info("Завершение работы программы.")
+                manager.visualize("Full Dependencies Graph")
+
+    except Exception as e:
+        logger.critical(f"Критическая ошибка: {str(e)}", exc_info=True)
+        print("Произошла ошибка. Подробности в логах.")
+
+    logger.info("Завершение работы модуля")
 
 
 if __name__ == "__main__":
