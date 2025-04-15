@@ -39,6 +39,7 @@ class TestSqlInput:
         graph_storage = (manager.storage.nodes, manager.storage.edges)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         assert graph_storage[0] == {"input 0", table_name}
 
         # Проверка ребер (убираем дубликаты)
@@ -76,6 +77,20 @@ class TestSqlInput:
         assert edge[2]["operation"] == "Insert"  # operation type
         assert "color" in edge[2]  # color exists
 >>>>>>> c270702 (fix: test_graph_manager_process_sql_correct_sql_query_insert_operation)
+=======
+        assert graph_storage[0] == {"input 0", table_name}
+
+        # Проверка ребер (убираем дубликаты)
+        unique_edges = list({(src, dst, frozenset(attrs.items()))
+                             for src, dst, attrs in graph_storage[1]})
+
+        assert len(unique_edges) == 1, f"Found duplicate edges: {graph_storage[1]}"
+
+        edge = unique_edges[0]
+        assert edge[0] == "input 0"  # source
+        assert edge[1] == table_name  # target
+        assert dict(edge[2]) == {"operation": "Insert", "color": "red"}
+>>>>>>> bb6e684 (fix: test2)
 
     def test_graph_manager_process_sql_merge_statement(self):
         target_table = "target_table"
