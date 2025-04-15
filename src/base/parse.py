@@ -41,6 +41,7 @@ class SqlAst:
         self.output_id = SqlAst._output_id
         self.unknown_id = SqlAst._unknown_id
         self.sep_parse = sep_parse
+        self._statement_count = 0
 
         try:
             self.parsed, self.dialect = safe_parse(self.corrected_sql)
@@ -59,6 +60,7 @@ class SqlAst:
         try:
             for statement in self.parsed:
                 # Сначала определяем целевую таблицу (для операций модификации данных)
+                self._statement_count += 1
                 to_table = None
                 if isinstance(statement, etl_types):
                     if "this" in statement.args:
@@ -71,6 +73,9 @@ class SqlAst:
                     to_table = self.get_table_name(statement.into)
                 else:
                     to_table = f"result {self._get_output_id()}"
+                if isinstance(statement, Insert):
+                    input_node = f"input {self._statement_count - 1}"  # уникальное имя
+                    dependencies[to_table].add(Edge(input_node, to_table, statement))
 
                 # Обрабатываем основной запрос и все подзапросы
                 self._process_statement_tree(statement, to_table, dependencies)
