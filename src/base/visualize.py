@@ -28,6 +28,11 @@ class GraphVisualizer:
                 label = data.get("operation", "")
                 edge_labels[(u, v)] = label
 
+            edge_widths = (
+                [
+                    data.get("width", 1.0) for u, v, data in G.edges(data=True)
+                ],  # тут вроде всё норм, но тут долже брать свои данные и визуализировать, которые ты по всей цепочке парсинга уже передал
+            )
             # Отрисовка графа
             nx.draw(
                 G,
@@ -35,6 +40,7 @@ class GraphVisualizer:
                 with_labels=True,
                 node_color="lightblue",
                 edge_color=edge_colors,
+                width=edge_widths,
                 font_size=10,
                 node_size=2000,
                 arrows=True,

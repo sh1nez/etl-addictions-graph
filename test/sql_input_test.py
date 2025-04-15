@@ -53,7 +53,7 @@ class TestSqlInput:
         edge = unique_edges[0]
         assert edge[0] == "input 0"  # source
         assert edge[1] == table_name  # target
-        assert dict(edge[2]) == {"operation": "Insert", "color": "red"}
+        assert dict(edge[2]) == {"operation": "Insert", "color": "red", "width": 1.0}
 
     def test_graph_manager_process_sql_merge_statement(self):
         target_table = "target_table"
@@ -79,7 +79,11 @@ class TestSqlInput:
         assert graph_storage[0] == set([target_table, source_table])
 
         assert graph_storage[1] == [
-            (source_table, target_table, {"operation": "Merge", "color": ANY})
+            (
+                source_table,
+                target_table,
+                {"operation": "Merge", "color": ANY, "width": 1.0},
+            )
         ]
 
     def test_graph_manager_process_sql_correct_sql_query_update_operation(self):
@@ -97,7 +101,11 @@ class TestSqlInput:
         assert graph_storage[0] == set([table_name_2, table_name_1])
 
         assert graph_storage[1] == [
-            (table_name_2, table_name_1, {"operation": "Update", "color": ANY})
+            (
+                table_name_2,
+                table_name_1,
+                {"operation": "Update", "color": ANY, "width": 1.0},
+            )
         ]
 
         def test_graph_manager_process_sql_correct_sql_query_different_sources(self):
@@ -120,8 +128,16 @@ class TestSqlInput:
 
             assert sorted(graph_storage[1]) == sorted(
                 [
-                    ("input 0", table_name_1, {"operation": "Insert", "color": ANY}),
-                    ("input 1", table_name_1, {"operation": "Insert", "color": ANY}),
+                    (
+                        "input 0",
+                        table_name_1,
+                        {"operation": "Insert", "color": ANY, "width": 1.0},
+                    ),
+                    (
+                        "input 1",
+                        table_name_1,
+                        {"operation": "Insert", "color": ANY, "width": 1.0},
+                    ),
                 ]
             )
 

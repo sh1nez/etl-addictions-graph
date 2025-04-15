@@ -407,11 +407,14 @@ class DirectoryParser:
                     try:
                         with open(file_path, "r", encoding="utf-8") as f:
                             sql_code = f.read()
+                            # TODO - когда вот тут у нас парсится вся ddl идректория, помимо всех остальных действий должна ещё и width считаться тут
+                            # из утил добавить функцию сюда, вернуть в резульат
                             ast = self.sql_ast_cls(sql_code, sep_parse)
                             results.append(
                                 (
                                     ast.get_dependencies(),
                                     ast.get_corrections(),
+                                    # width
                                     file_path,
                                 )
                             )

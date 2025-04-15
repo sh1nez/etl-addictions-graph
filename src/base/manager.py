@@ -21,8 +21,11 @@ class GraphManager:
     def process_directory(self, directory_path: str) -> List[Tuple[str, List[str]]]:
         results = []
         parse_results = self.parser.parse_directory(directory_path)
+        # width принимаешь
         for dependencies, corrections, file_path in parse_results:
-            self.storage.add_dependencies(dependencies)
+            self.storage.add_dependencies(
+                dependencies
+            )  # -> width storage  передаёшь дальше
             results.append((file_path, corrections))
         return results
 
