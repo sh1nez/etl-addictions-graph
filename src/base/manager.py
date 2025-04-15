@@ -9,7 +9,7 @@ class GraphManager:
     """Class for managing graph building and visualization components."""
 
     def __init__(self, column_mode=False):
-        self.storage = GraphStorage(column_mode=True)
+        self.storage = GraphStorage(column_mode=column_mode)
         self.visualizer = GraphVisualizer() if not column_mode else None
         self.parser = DirectoryParser(SqlAst)
 
