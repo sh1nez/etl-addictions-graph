@@ -27,22 +27,22 @@ class TestSqlInput:
 
         assert graph_storage[1] == []
 
-    # def test_graph_manager_process_sql_correct_sql_query_insert_operation(self):
-    #     table_name = "valid_table"
-    #     manager = GraphManager()
-    #     corrections = manager.process_sql(
-    #         f"INSERT INTO {table_name} VALUES ('unclosed_quote');"
-    #     )
-    #
-    #     assert corrections == []
-    #
-    #     graph_storage = (manager.storage.nodes, manager.storage.edges)
-    #
-    #     assert graph_storage[0] == set(["input 0", table_name])
-    #
-    #     assert graph_storage[1] == [
-    #         ("input 0", table_name, {"operation": "Insert", "color": ANY})
-    #     ]
+    def test_graph_manager_process_sql_correct_sql_query_insert_operation(self):
+        table_name = "valid_table"
+        manager = GraphManager()
+        corrections = manager.process_sql(
+            f"INSERT INTO {table_name} VALUES ('unclosed_quote');"
+        )
+
+        assert corrections == []
+
+        graph_storage = (manager.storage.nodes, manager.storage.edges)
+
+        assert graph_storage[0] == set(["input 0", table_name])
+
+        assert graph_storage[1] == [
+            ("input 0", table_name, {"operation": "Insert", "color": ANY})
+        ]
 
     def test_graph_manager_process_sql_merge_statement(self):
         target_table = "target_table"
@@ -89,30 +89,30 @@ class TestSqlInput:
             (table_name_2, table_name_1, {"operation": "Update", "color": ANY})
         ]
 
-    #     def test_graph_manager_process_sql_correct_sql_query_different_sources(self):
-    #         table_name_1 = "employees"
-    #         manager = GraphManager()
-    #         corrections = manager.process_sql(
-    #             f"""INSERT INTO {table_name_1} (name, department, salary)
-    # VALUES ('Иван Иванов', 'IT', 75000.00);
-    #
-    #
-    # INSERT INTO {table_name_1} (name, department, salary, hire_date)
-    # VALUES ('Мария Петрова', 'HR', 65000.00, DEFAULT);"""
-    #         )
-    #
-    #         assert corrections == []
-    #
-    #         graph_storage = (manager.storage.nodes, manager.storage.edges)
-    #
-    #         assert graph_storage[0] == set(["input 0", "input 1", table_name_1])
-    #
-    #         assert sorted(graph_storage[1]) == sorted(
-    #             [
-    #                 ("input 0", table_name_1, {"operation": "Insert", "color": ANY}),
-    #                 ("input 1", table_name_1, {"operation": "Insert", "color": ANY}),
-    #             ]
-    #         )
+        def test_graph_manager_process_sql_correct_sql_query_different_sources(self):
+            table_name_1 = "employees"
+            manager = GraphManager()
+            corrections = manager.process_sql(
+                f"""INSERT INTO {table_name_1} (name, department, salary)
+    VALUES ('Иван Иванов', 'IT', 75000.00);
+
+
+    INSERT INTO {table_name_1} (name, department, salary, hire_date)
+    VALUES ('Мария Петрова', 'HR', 65000.00, DEFAULT);"""
+            )
+
+            assert corrections == []
+
+            graph_storage = (manager.storage.nodes, manager.storage.edges)
+
+            assert graph_storage[0] == set(["input 0", "input 1", table_name_1])
+
+            assert sorted(graph_storage[1]) == sorted(
+                [
+                    ("input 0", table_name_1, {"operation": "Insert", "color": ANY}),
+                    ("input 1", table_name_1, {"operation": "Insert", "color": ANY}),
+                ]
+            )
 
     def test_graph_manager_process_directory_dir_path_not_exists(self, capsys):
         dir_path = "/hfjalsf"
@@ -143,19 +143,19 @@ class TestSqlInput:
 
         assert error_message in captured.out
 
-    # def test_graph_manager_process_directory_correct_dir_path(self, capsys):
-    #     dir_path = BASE_DIR / "ddl/"
-    #
-    #     manager = GraphManager()
-    #     results = manager.process_directory(dir_path)
-    #
-    #     assert len(results) > 0
-    #
-    #     message = f"Processing files in directory: {dir_path}"
-    #
-    #     captured = capsys.readouterr()
-    #
-    #     assert message in captured.out
+    def test_graph_manager_process_directory_correct_dir_path(self, capsys):
+        dir_path = BASE_DIR / "ddl/"
+
+        manager = GraphManager()
+        results = manager.process_directory(dir_path)
+
+        assert len(results) > 0
+
+        message = f"Processing files in directory: {dir_path}"
+
+        captured = capsys.readouterr()
+
+        assert message in captured.out
 
     def test_graph_manager_process_sql_emtpy_string(self):
         sql_code = ""
