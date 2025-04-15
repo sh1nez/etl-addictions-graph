@@ -2,7 +2,7 @@ from collections import defaultdict
 from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Join
 from typing import Union
 from sqlglot.expressions import Select, DML
-
+from field.columns import parse_columns
 
 class BuffRead:
     pass
@@ -27,9 +27,10 @@ class GraphStorage:
         BuffRead: "blue",  # Для прямых ссылок на таблицы
     }
 
-    def __init__(self):
+    def __init__(self, column_mode=False):
         self.nodes = set()
         self.edges = []
+        self.column_mode = column_mode
 
     def add_dependencies(self, dependencies: defaultdict):
         for to_table, edges in dependencies.items():
@@ -50,6 +51,9 @@ class GraphStorage:
                 # Упрощаем отображение для прямых ссылок на таблицы
                 elif isinstance(op, Table):
                     edge_data["operation"] = "Reference"
+                
+                if self.column_mode:
+                    edge_data["columns"] = parse_columns(op)
 
                 self.edges.append((edge.from_table, to_table, edge_data))
 
