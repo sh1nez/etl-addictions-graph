@@ -8,9 +8,9 @@ from base.parse import SqlAst
 class GraphManager:
     """Class for managing graph building and visualization components."""
 
-    def __init__(self):
-        self.storage = GraphStorage()
-        self.visualizer = GraphVisualizer()
+    def __init__(self, column_mode=False):
+        self.storage = GraphStorage(column_mode=column_mode)
+        self.visualizer = GraphVisualizer() if not column_mode else None
         self.parser = DirectoryParser(SqlAst)
 
     def process_sql(self, sql_code: str) -> List[str]:
