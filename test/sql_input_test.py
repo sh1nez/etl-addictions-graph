@@ -41,8 +41,17 @@ class TestSqlInput:
         assert graph_storage[0] == {"input 0", table_name}
 
         # Проверка ребер (убираем дубликаты)
+<<<<<<< HEAD
         unique_edges = list({(src, dst, frozenset(attrs.items()))
                              for src, dst, attrs in graph_storage[1]})
+=======
+        unique_edges = list(
+            {
+                (src, dst, frozenset(attrs.items()))
+                for src, dst, attrs in graph_storage[1]
+            }
+        )
+>>>>>>> 4ce56f0 (fixx test input (#51))
 
         assert len(unique_edges) == 1, f"Found duplicate edges: {graph_storage[1]}"
 
