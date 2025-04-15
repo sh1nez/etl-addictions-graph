@@ -1,8 +1,18 @@
 from collections import defaultdict
-from sqlglot.expressions import Update, Insert, Table, Delete, Merge, Select, Join
+from sqlglot.expressions import (
+    Update,
+    Insert,
+    Table,
+    Delete,
+    Merge,
+    Select,
+    Join,
+    Expression,
+)
 from typing import Union
 from sqlglot.expressions import Select, DML
 from field.columns import parse_columns
+
 
 class BuffRead:
     pass
@@ -51,9 +61,15 @@ class GraphStorage:
                 # Упрощаем отображение для прямых ссылок на таблицы
                 elif isinstance(op, Table):
                     edge_data["operation"] = "Reference"
-                
-                if self.column_mode:
+
+                if (
+                    self.column_mode
+                    and isinstance(op, Expression)
+                    and not isinstance(op, Table)
+                ):
                     edge_data["columns"] = parse_columns(op)
+                    if edge_data["columns"] is None:
+                        print("Type of invalid input:", type(op))
 
                 self.edges.append((edge.from_table, to_table, edge_data))
 
