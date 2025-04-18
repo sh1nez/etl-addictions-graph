@@ -1,7 +1,6 @@
 from func.buff_tables import run
 
 
-<<<<<<< HEAD
 def process_args(args):
     """Processing command line arguments for functional mode"""
     print("Functional mode started with arguments:")
@@ -13,7 +12,5 @@ def process_args(args):
     print(f"  Separate graphs: {args.separate_graph}")
 
 
-=======
->>>>>>> 89818cf (fix: buff tables (#46))
 def main():
     run()
