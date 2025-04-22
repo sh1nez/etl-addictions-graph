@@ -1,6 +1,7 @@
 from functools import total_ordering
 import os
 from collections import defaultdict
+from os.path import realpath
 from typing import Optional, List, Tuple
 from sqlglot.expressions import (
     Update,
@@ -53,6 +54,10 @@ class SqlAst:
             self.dependencies = defaultdict(set)
             self.corrections.append(f"Error parsing SQL: {str(e)}")
 
+    def _add_dependency(self, dependencies: defaultdict, edge: Edge):
+        if edge.to_table != edge.from_table:
+            dependencies[edge.to_table].add(edge)
+
     def _extract_dependencies(self) -> defaultdict:
         """Extracts dependencies between tables and operations including ETL, SELECT and JOIN queries."""
         dependencies = defaultdict(set)
@@ -75,7 +80,9 @@ class SqlAst:
                     to_table = f"result {self._get_output_id()}"
                 if isinstance(statement, Insert):
                     input_node = f"input {self._statement_count - 1}"  # уникальное имя
-                    dependencies[to_table].add(Edge(input_node, to_table, statement))
+                    self._add_dependency(
+                        dependencies, Edge(input_node, to_table, statement)
+                    )
 
                 # Обрабатываем основной запрос и все подзапросы
                 self._process_statement_tree(statement, to_table, dependencies)
@@ -93,16 +100,22 @@ class SqlAst:
                 from_table = self.get_table_name(statement.args["from"])
                 # Добавляем зависимость от основной таблицы к результату
                 if isinstance(statement, Select):
-                    dependencies[to_table].add(Edge(from_table, to_table, statement))
+                    self._add_dependency(
+                        dependencies, Edge(from_table, to_table, statement)
+                    )
                 else:
                     # Для операций модификации данных (DML)
-                    dependencies[to_table].add(Edge(from_table, to_table, statement))
+                    self._add_dependency(
+                        dependencies, Edge(from_table, to_table, statement)
+                    )
 
             if isinstance(statement, Merge):
                 # Using определяет таблицу источник
                 if "using" in statement.args and statement.args["using"]:
                     using_table = self.get_table_name(statement.args["using"])
-                    dependencies[to_table].add(Edge(using_table, to_table, statement))
+                    self._add_dependency(
+                        dependencies, Edge(using_table, to_table, statement)
+                    )
 
                 # Проверка merge условий
                 if "on" in statement.args and statement.args["on"]:
@@ -125,8 +138,8 @@ class SqlAst:
                         simple_join = Join()
 
                         # Добавляем зависимость от JOIN-таблицы к целевой таблице
-                        dependencies[to_table].add(
-                            Edge(join_table, to_table, simple_join)
+                        self._add_dependency(
+                            dependencies, Edge(join_table, to_table, simple_join)
                         )
 
             # Обработка выражений в запросах UPDATE и INSERT
@@ -146,7 +159,9 @@ class SqlAst:
 
                 if isinstance(expr, Values):
                     from_table = f"input {self._get_output_id()}"
-                    dependencies[to_table].add(Edge(from_table, to_table, statement))
+                    self._add_dependency(
+                        dependencies, Edge(from_table, to_table, statement)
+                    )
 
             # Обработка WHERE условий, которые могут содержать подзапросы
             if "where" in statement.args and statement.args["where"] is not None:
@@ -169,7 +184,7 @@ class SqlAst:
                 elif isinstance(node, Table):
                     table_name = self.get_table_name(node)
                     # Добавляем прямую зависимость
-                    dependencies[to_table].add(Edge(table_name, to_table, node))
+                    self._add_dependency(dependencies, Edge(table_name, to_table, node))
 
         except Exception as e:
             print(f"Error extracting table dependencies: {e}")
@@ -190,8 +205,8 @@ class SqlAst:
                     joined_table = self.get_table_name(join_node.args.get("this"))
                     if base_table and joined_table:
                         # Создаем связь между таблицами
-                        dependencies[base_table].add(
-                            Edge(joined_table, base_table, join_node)
+                        self._add_dependency(
+                            dependencies, Edge(joined_table, base_table, join_node)
                         )
 
             # Также проверяем вложенные JOIN'ы в FROM
@@ -210,9 +225,10 @@ class SqlAst:
 
                     if left_table and right_table:
                         # Создаем связь между таблицами
-                        dependencies[left_table].add(
-                            Edge(right_table, left_table, node)
+                        self._add_dependency(
+                            dependencies, Edge(right_table, left_table, node)
                         )
+
         except Exception as e:
             print(f"Error processing nested JOINs: {e}")
 
@@ -235,7 +251,9 @@ class SqlAst:
 
             # Добавляем зависимость: из right_table в left_table
             if left_table and right_table:
-                dependencies[left_table].add(Edge(right_table, left_table, join_node))
+                self._add_dependency(
+                    dependencies, Edge(right_table, left_table, join_node)
+                )
                 print(f"Added JOIN dependency: {right_table} -> {left_table}")
             else:
                 print(
