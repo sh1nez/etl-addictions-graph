@@ -1,6 +1,7 @@
 from functools import total_ordering
 import os
 from collections import defaultdict
+import re
 from typing import Optional, List, Tuple
 from sqlglot.expressions import (
     Update,
@@ -11,9 +12,32 @@ from sqlglot.expressions import (
     Select,
     Join,
     Values,
+    With,
+    CTE,
+    Expression,
 )
 from util.dialect import safe_parse
 from base.storage import Edge
+from CteAst.astb import SqlAstRoot
+from CteAst.lexer import tokenize
+from CteAst.CTE import CTEparser as CteParser
+
+# __all__ = ['parse']
+#
+# def parse(sql: str) -> SqlAstRoot:
+#     """
+#     Универсальная точка входа для разбора SQL-запросов.
+#     Распознаёт CTE (WITH ... AS (...)) и простые запросы.
+#     Возвращает корень AST (SqlAstRoot).
+#     """
+#     # 1. Токенизируем строку
+#     tokens = tokenize(sql)
+#
+#     # 2. Используем CteParser, который внутри сам определит, есть ли WITH
+#     ast_root = CteParser().parse(tokens)
+#
+#     return ast_root
+# And we need to do something to fix it(idk how much time i need)
 
 
 class SqlAst:
@@ -199,6 +223,13 @@ class SqlAst:
 
         except Exception as e:
             print(f"Error extracting JOIN dependencies: {e}")
+
+    #     def _find_with_(self,expr,dependencies):
+    #         """Find nested WITH (begining of CTE)"""
+    #         try:
+    #             for node in expr.walk():
+    #                 if isinstance(node,With):
+    #
 
     def _find_nested_joins(self, expr, dependencies):
         """Find nested JOIN operations within expressions."""
