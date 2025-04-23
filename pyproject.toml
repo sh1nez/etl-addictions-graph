@@ -1,0 +1,20 @@
+[project]
+name = "etl-addictions-graph"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.1",
+    "networkx>=3.4.2",
+    "pyqt6>=6.9.0",
+    "sqlglot>=26.13.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "coverage>=7.8.0",
+    "pre-commit>=4.2.0",
+    "pytest>=8.3.5",
+]
