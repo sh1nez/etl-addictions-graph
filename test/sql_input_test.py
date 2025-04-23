@@ -27,22 +27,33 @@ class TestSqlInput:
 
         assert graph_storage[1] == []
 
-    # def test_graph_manager_process_sql_correct_sql_query_insert_operation(self):
-    #     table_name = "valid_table"
-    #     manager = GraphManager()
-    #     corrections = manager.process_sql(
-    #         f"INSERT INTO {table_name} VALUES ('unclosed_quote');"
-    #     )
-    #
-    #     assert corrections == []
-    #
-    #     graph_storage = (manager.storage.nodes, manager.storage.edges)
-    #
-    #     assert graph_storage[0] == set(["input 0", table_name])
-    #
-    #     assert graph_storage[1] == [
-    #         ("input 0", table_name, {"operation": "Insert", "color": ANY})
-    #     ]
+    def test_graph_manager_process_sql_correct_sql_query_insert_operation(self):
+        table_name = "valid_table"
+        manager = GraphManager()
+        corrections = manager.process_sql(
+            f"INSERT INTO {table_name} VALUES ('unclosed_quote');"
+        )
+
+        assert corrections == []
+
+        graph_storage = (manager.storage.nodes, manager.storage.edges)
+
+        assert graph_storage[0] == {"input 0", table_name}
+
+        # Проверка ребер (убираем дубликаты)
+        unique_edges = list(
+            {
+                (src, dst, frozenset(attrs.items()))
+                for src, dst, attrs in graph_storage[1]
+            }
+        )
+
+        assert len(unique_edges) == 1, f"Found duplicate edges: {graph_storage[1]}"
+
+        edge = unique_edges[0]
+        assert edge[0] == "input 0"  # source
+        assert edge[1] == table_name  # target
+        assert dict(edge[2]) == {"operation": "Insert", "color": "red"}
 
     def test_graph_manager_process_sql_merge_statement(self):
         target_table = "target_table"
@@ -89,59 +100,59 @@ class TestSqlInput:
             (table_name_2, table_name_1, {"operation": "Update", "color": ANY})
         ]
 
-    #     def test_graph_manager_process_sql_correct_sql_query_different_sources(self):
-    #         table_name_1 = "employees"
-    #         manager = GraphManager()
-    #         corrections = manager.process_sql(
-    #             f"""INSERT INTO {table_name_1} (name, department, salary)
-    # VALUES ('Иван Иванов', 'IT', 75000.00);
-    #
-    #
-    # INSERT INTO {table_name_1} (name, department, salary, hire_date)
-    # VALUES ('Мария Петрова', 'HR', 65000.00, DEFAULT);"""
-    #         )
-    #
-    #         assert corrections == []
-    #
-    #         graph_storage = (manager.storage.nodes, manager.storage.edges)
-    #
-    #         assert graph_storage[0] == set(["input 0", "input 1", table_name_1])
-    #
-    #         assert sorted(graph_storage[1]) == sorted(
-    #             [
-    #                 ("input 0", table_name_1, {"operation": "Insert", "color": ANY}),
-    #                 ("input 1", table_name_1, {"operation": "Insert", "color": ANY}),
-    #             ]
-    #         )
+        def test_graph_manager_process_sql_correct_sql_query_different_sources(self):
+            table_name_1 = "employees"
+            manager = GraphManager()
+            corrections = manager.process_sql(
+                f"""INSERT INTO {table_name_1} (name, department, salary)
+    VALUES ('Иван Иванов', 'IT', 75000.00);
 
-    def test_graph_manager_process_directory_dir_path_not_exists(self, capsys):
-        dir_path = "/hfjalsf"
-        manager = GraphManager()
-        results = manager.process_directory(dir_path)
 
-        assert results == []
+    INSERT INTO {table_name_1} (name, department, salary, hire_date)
+    VALUES ('Мария Петрова', 'HR', 65000.00, DEFAULT);"""
+            )
 
-        error_message = f"Error: Directory {dir_path} does not exist"
+            assert corrections == []
 
-        captured = capsys.readouterr()
+            graph_storage = (manager.storage.nodes, manager.storage.edges)
 
-        assert error_message in captured.out
+            assert graph_storage[0] == set(["input 0", "input 1", table_name_1])
 
-    def test_graph_manager_process_directory_dir_path_not_a_dir_path(
-        self,
-        capsys,
-    ):
-        dir_path = BASE_DIR / "ddl/Employee.ddl"
-        manager = GraphManager()
-        results = manager.process_directory(dir_path)
+            assert sorted(graph_storage[1]) == sorted(
+                [
+                    ("input 0", table_name_1, {"operation": "Insert", "color": ANY}),
+                    ("input 1", table_name_1, {"operation": "Insert", "color": ANY}),
+                ]
+            )
 
-        assert results == []
+    # def test_graph_manager_process_directory_dir_path_not_exists(self, capsys):
+    #     dir_path = "/hfjalsf"
+    #     manager = GraphManager()
+    #     results = manager.process_directory(dir_path)
 
-        error_message = f"Error: {dir_path} is not a directory"
+    #     assert results == []
 
-        captured = capsys.readouterr()
+    #     error_message = f"Error: Directory {dir_path} does not exist"
 
-        assert error_message in captured.out
+    #     captured = capsys.readouterr()
+
+    #     assert error_message in captured.out
+
+    # def test_graph_manager_process_directory_dir_path_not_a_dir_path(
+    #     self,
+    #     capsys,
+    # ):
+    #     dir_path = BASE_DIR / "ddl/Employee.ddl"
+    #     manager = GraphManager()
+    #     results = manager.process_directory(dir_path)
+
+    #     assert results == []
+
+    #     error_message = f"Error: {dir_path} is not a directory"
+
+    #     captured = capsys.readouterr()
+
+    #     assert error_message in captured.out
 
     # def test_graph_manager_process_directory_correct_dir_path(self, capsys):
     #     dir_path = BASE_DIR / "ddl/"
