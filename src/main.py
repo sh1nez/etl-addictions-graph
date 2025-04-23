@@ -1,4 +1,3 @@
-# main.py (обновленный)
 import func.run
 import field.run
 import table.run
