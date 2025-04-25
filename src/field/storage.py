@@ -1,3 +1,4 @@
+from base.storage import GraphStorage
 from collections import defaultdict
 from sqlglot.expressions import (
     Update,
@@ -9,37 +10,10 @@ from sqlglot.expressions import (
     Join,
     Expression,
 )
-from typing import Union
-from sqlglot.expressions import Select, DML
+from field.columns import parse_columns
 
 
-class BuffRead:
-    pass
-
-
-class BuffWrite:
-    pass
-
-
-class GraphStorage:
-    """Class for storing dependency graph data."""
-
-    COLORS = {
-        Insert: "red",
-        Update: "green",
-        Delete: "blue",
-        Merge: "yellow",
-        Select: "purple",
-        Join: "orange",
-        Table: "cyan",  # Для прямых ссылок на таблицы
-        BuffWrite: "green",  # Для прямых ссылок на таблицы
-        BuffRead: "blue",  # Для прямых ссылок на таблицы
-    }
-
-    def __init__(self):
-        self.nodes = set()
-        self.edges = []
-
+class ColumnStorage(GraphStorage):
     def add_dependencies(self, dependencies: defaultdict):
         for to_table, edges in dependencies.items():
             self.nodes.add(to_table)
@@ -60,15 +34,9 @@ class GraphStorage:
                 elif isinstance(op, Table):
                     edge_data["operation"] = "Reference"
 
+                if isinstance(op, Expression) and not isinstance(op, Table):
+                    edge_data["columns"] = parse_columns(op)
+                    if edge_data["columns"] is None:
+                        print("Type of invalid input:", type(op))
+
                 self.edges.append((edge.from_table, to_table, edge_data))
-
-    def clear(self):
-        self.nodes.clear()
-        self.edges.clear()
-
-
-class Edge:
-    def __init__(self, from_table: str, to_table: str, op: Union[DML, Select]):
-        self.from_table = from_table
-        self.to_table = to_table
-        self.op = op  # operation
