@@ -7,12 +7,13 @@ from sqlglot.expressions import (
     Expression,
     Column,
     Values,
+    Alias,
 )
 from itertools import zip_longest
 from typing import Optional, List, Tuple
 
 
-def print_ifnt_str(func):  # * for testing, safe to delete
+def print_ifnt_str(func):  # * for testing
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         if not isinstance(result, str):
@@ -27,6 +28,7 @@ def print_ifnt_str(func):  # * for testing, safe to delete
     return wrapper
 
 
+# TODO: join parse, ?Reference parse?
 @print_ifnt_str
 def parse_columns(op: Expression) -> Tuple[Optional[List[str]], Optional[List[str]]]:
     """If parsed correctly, returns tuple ([<source_table_column>:?<input_table_column>?],[statement_columns])."""
@@ -132,17 +134,29 @@ def _parse_merge(op: Merge):
     if "on" in op.args and op.args["on"]:
         on = op.args["on"]
         return (
-            [f"{_this_deep_parse(on)}:{_this_deep_parse(on, prior="expression")}"],
+            [f"{_this_deep_parse(on)}:{_this_deep_parse(on, prior='expression')}"],
             None,
         )
     return ([], None)
 
 
-def _parse_select(op: Select):  # TODO : sum(*), case when and etc
+def _select_columns(op):
+    if (
+        "this" in op.args
+        and "this" in op.args["this"].args
+        and isinstance(op.args["this"].args["this"], str)
+    ):
+        return op.args["this"].args["this"]
+    if isinstance(op, Alias):
+        return str(op.args["this"])
+    return str(op)
+
+
+def _parse_select(op: Select):
     """Returns ([<displaying_columns_name>], [<statement_column_name>]) if where statement exists"""
     where = []
     where = _where_column_names(op) if "where" in op.args else []
     select_cols = op.args["expressions"]
     if select_cols[0].is_star:
         return (["*"], where)
-    return ([_this_deep_parse(i) for i in select_cols], where)
+    return ([_select_columns(i) for i in select_cols], where)
