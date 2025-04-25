@@ -1,6 +1,6 @@
 import os
 from base.manager import GraphManager
-from base.storage import GraphStorage
+from field.storage import ColumnStorage
 
 
 def process_args(args):
@@ -27,7 +27,7 @@ def process_args(args):
                     print("Corrections made:")
                     for i, correction in enumerate(corrections, 1):
                         print(f"{i}. {correction}")
-                temp_storage = GraphStorage(column_mode=True)
+                temp_storage = ColumnStorage()
                 temp_storage.add_dependencies(dependencies)
                 manager.visualizer.render(
                     temp_storage,
