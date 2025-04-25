@@ -116,7 +116,7 @@ class ColumnVisualizer:
 
             if title:
                 plt.title(title)
-            # plt.tight_layout()
+            plt.tight_layout()
             plt.show()
         except Exception as e:
             print(f"Error visualizing graph: {e}")
