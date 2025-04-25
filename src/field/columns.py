@@ -132,7 +132,7 @@ def _parse_merge(op: Merge):
     if "on" in op.args and op.args["on"]:
         on = op.args["on"]
         return (
-            [f"{_this_deep_parse(on)}:{_this_deep_parse(on, prior="expression")}"],
+            [f"{_this_deep_parse(on)}:{_this_deep_parse(on, prior='expression')}"],
             None,
         )
     return ([], None)

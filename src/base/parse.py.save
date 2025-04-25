@@ -17,11 +17,10 @@ from sqlglot.expressions import (
     With,
     CTE,
     Subquery,
-    Expression,
+    Expression
 )
 from util.dialect import safe_parse
 from storage import Edge
-
 
 class SqlAst:
     """Class for building AST of SQL queries."""
@@ -90,10 +89,8 @@ class SqlAst:
                             data_type = col_def.args["datatype"].sql()
                             columns[col_name] = {
                                 "data_type": data_type,
-                                "nullable": "not" not in col_def.args
-                                or not col_def.args["not"],
-                                "primary_key": "primary" in col_def.args
-                                and col_def.args["primary"],
+                                "nullable": "not" not in col_def.args or not col_def.args["not"],
+                                "primary_key": "primary" in col_def.args and col_def.args["primary"],
                             }
 
                 self.table_schema[table_name] = columns
@@ -113,11 +110,7 @@ class SqlAst:
             is_recursive = False
             if isinstance(statement, With) and "recursive" in statement.args:
                 is_recursive = statement.args["recursive"]
-            elif (
-                "with" in statement.args
-                and statement.args["with"]
-                and "recursive" in statement.args["with"].args
-            ):
+            elif "with" in statement.args and statement.args["with"] and "recursive" in statement.args["with"].args:
                 is_recursive = statement.args["with"].args["recursive"]
 
             if is_recursive:
@@ -226,13 +219,8 @@ class SqlAst:
                 if isinstance(statement, Create):
                     to_table = self.get_table_name(statement.args.get("this"))
                     # For CREATE TABLE AS SELECT, extract dependencies from the SELECT
-                    if (
-                        statement.args.get("kind") == "TABLE"
-                        and "expression" in statement.args
-                    ):
-                        self._process_statement_tree(
-                            statement.args["expression"], to_table, dependencies
-                        )
+                    if statement.args.get("kind") == "TABLE" and "expression" in statement.args:
+                        self._process_statement_tree(statement.args["expression"], to_table, dependencies)
 
                 elif isinstance(statement, Drop):
                     # For DROP statements, no dependencies to track
@@ -241,12 +229,8 @@ class SqlAst:
                 elif isinstance(statement, Alter):
                     to_table = self.get_table_name(statement.args.get("this"))
                     # If ALTER TABLE involves SELECT (e.g., ALTER TABLE ADD COLUMN AS SELECT...)
-                    if "expression" in statement.args and isinstance(
-                        statement.args["expression"], Select
-                    ):
-                        self._process_statement_tree(
-                            statement.args["expression"], to_table, dependencies
-                        )
+                    if "expression" in statement.args and isinstance(statement.args["expression"], Select):
+                        self._process_statement_tree(statement.args["expression"], to_table, dependencies)
 
                 # Handle DML statements
                 elif isinstance(statement, etl_types):
@@ -254,9 +238,9 @@ class SqlAst:
                         to_table = self.get_table_name(statement.args.get("this"))
 
                 elif (
-                    isinstance(statement, Select)
-                    and hasattr(statement, "into")
-                    and statement.into is not None
+                        isinstance(statement, Select)
+                        and hasattr(statement, "into")
+                        and statement.into is not None
                 ):
                     to_table = self.get_table_name(statement.into)
 
@@ -269,21 +253,13 @@ class SqlAst:
                     # For INSERT...VALUES
                     if isinstance(statement.args.get("expression"), Values):
                         input_node = f"input {self._get_input_id()}"
-                        dependencies[to_table].add(
-                            Edge(input_node, to_table, statement)
-                        )
+                        dependencies[to_table].add(Edge(input_node, to_table, statement))
                     # For INSERT...SELECT
                     elif isinstance(statement.args.get("expression"), Select):
-                        self._process_statement_tree(
-                            statement.args["expression"], to_table, dependencies
-                        )
+                        self._process_statement_tree(statement.args["expression"], to_table, dependencies)
 
                 # Process WITH clauses (Common Table Expressions)
-                if (
-                    isinstance(statement, With)
-                    or "with" in statement.args
-                    and statement.args["with"]
-                ):
+                if isinstance(statement, With) or "with" in statement.args and statement.args["with"]:
                     self._process_with_statement(statement, to_table, dependencies)
 
                 # Process the main statement and all subqueries
@@ -310,12 +286,8 @@ class SqlAst:
 
     def _process_with_statement(self, statement, to_table, dependencies):
         """Process a WITH statement or a statement containing a WITH clause."""
-        with_clause = (
-            statement if isinstance(statement, With) else statement.args["with"]
-        )
-        main_query = (
-            statement.args.get("this") if isinstance(statement, With) else statement
-        )
+        with_clause = statement if isinstance(statement, With) else statement.args["with"]
+        main_query = statement.args.get("this") if isinstance(statement, With) else statement
 
         # Process each CTE
         if "expressions" in with_clause.args:
@@ -443,10 +415,7 @@ class SqlAst:
                         if table_name in self.recursive_ctes and to_table == table_name:
                             # Mark as a recursive edge
                             for edge in dependencies[to_table]:
-                                if (
-                                    edge.source == table_name
-                                    and edge.target == to_table
-                                ):
+                                if edge.source == table_name and edge.target == to_table:
                                     edge.is_recursive = True
         except Exception as e:
             print(f"Error handling CTE references: {e}")
@@ -461,9 +430,7 @@ class SqlAst:
 
                 elif isinstance(node, Subquery):
                     if "this" in node.args:
-                        self._process_statement_tree(
-                            node.args["this"], to_table, dependencies
-                        )
+                        self._process_statement_tree(node.args["this"], to_table, dependencies)
 
                 # Look for direct references to tables
                 elif isinstance(node, Table):
@@ -729,7 +696,7 @@ class DirectoryParser:
         self.sql_ast_cls = sql_ast_cls
 
     def parse_directory(
-        self, directory: str, sep_parse: bool = False
+            self, directory: str, sep_parse: bool = False
     ) -> List[Tuple[defaultdict, List[str], str]]:
         results = []
         if not os.path.exists(directory):
