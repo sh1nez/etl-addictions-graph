@@ -12,19 +12,6 @@ class ColumnVisualizer:
             print("Graph is empty, no dependencies to display.")
             return
         G = nx.MultiDiGraph()
-        # temp_nodes = set()
-        # temp_edges = []
-        # for edge in storage.edges: # Display only Insert COL pairs
-        #     if edge[2].get("operation") == "Insert":
-        #         columns = edge[2].get("columns", None)
-        #         if columns is None: continue
-        #         # for col in columns[0]:
-        #         #     temp_edges.append((edge[0],edge[1],{"columns":col, "color":"red"}))
-        #         temp_edges.append((edge[0],edge[1],{"operation":"Insert", "columns":"\n".join(columns[0]), "color":"red"}))
-        #         temp_nodes.add(edge[0])
-        #         temp_nodes.add(edge[1])
-        # G.add_nodes_from(temp_nodes)
-        # G.add_edges_from(temp_edges)
         G.add_nodes_from(storage.nodes)
         G.add_edges_from(storage.edges)
         plt.figure(figsize=(12, 8))
@@ -89,16 +76,16 @@ class ColumnVisualizer:
                 columns_parsed = attrs.get("columns", None)
                 info = ""
                 if columns_parsed is not None:
-                    if columns_parsed[0] is not None and len(columns_parsed[0]) > 1:
+                    if columns_parsed[0] is not None and len(columns_parsed[0]) > 0:
                         info = "Columns "
                         if ":" in columns_parsed[0][0]:
-                            info += "to:from\n"
+                            info += "to:from\n  "
                         else:
-                            info += "to\n"
-                        info += "\n".join(columns_parsed[0])
-                    if columns_parsed[1] is not None and len(columns_parsed[1]) > 1:
-                        info += "Where columns\n"
-                        info += "\n".join(columns_parsed[1])
+                            info += "to\n  "
+                        info += "\n  ".join(columns_parsed[0])
+                    if columns_parsed[1] is not None and len(columns_parsed[1]) > 0:
+                        info += "\nWhere columns\n  "
+                        info += "\n  ".join(columns_parsed[1])
 
                 x, y = label.get_position()
                 last_ann = ax.annotate(
