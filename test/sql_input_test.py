@@ -70,9 +70,7 @@ class TestSqlInput:
             }
         )
 
-        assert (
-            len(unique_edges) == 1
-        ), f"Found duplicate edges: {graph_storage[1]}"
+        assert len(unique_edges) == 1, f"Found duplicate edges: {graph_storage[1]}"
 
         edge = unique_edges[0]
         assert edge[0] == "input 0"  # source
@@ -154,9 +152,7 @@ class TestSqlInput:
                 self.graph_manager.storage.edges,
             )
 
-            assert graph_storage[0] == set(
-                ["input 0", "input 1", table_name_1]
-            )
+            assert graph_storage[0] == set(["input 0", "input 1", table_name_1])
 
             assert sorted(graph_storage[1]) == sorted(
                 [
@@ -303,9 +299,7 @@ class TestJoinInput:
         ),
     ]
 
-    @pytest.mark.parametrize(
-        "case", test_cases, ids=[case.name for case in test_cases]
-    )
+    @pytest.mark.parametrize("case", test_cases, ids=[case.name for case in test_cases])
     def test_valid_joins(self, case: SqlTestCase):
         self.graph_manager.storage = GraphManager().storage
         corrections = self.graph_manager.process_sql(case.sql)
@@ -327,9 +321,7 @@ class TestJoinInput:
         assert edges == case.expected_edges
 
     def test_invalid_join(self):
-        sql_query = (
-            "SELECT * FROM users JON orders ON users.id = orders.user_id;"
-        )
+        sql_query = "SELECT * FROM users JON orders ON users.id = orders.user_id;"
 
         corrections = self.graph_manager.process_sql(sql_query)
 
