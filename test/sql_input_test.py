@@ -12,7 +12,6 @@ __all__ = []
 
 
 class TestSqlInput:
-
     @pytest.fixture(autouse=True)
     def setup_manager(self):
         self.graph_manager = GraphManager()
@@ -249,7 +248,6 @@ class SqlTestCase:
 
 
 class TestJoinInput:
-
     @pytest.fixture(autouse=True)
     def setup_manager(self):
         self.graph_manager = GraphManager()
