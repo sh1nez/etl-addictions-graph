@@ -346,7 +346,9 @@ class SqlAst:
                 from_table = self.get_table_name(statement.args["from"])
                 # Add dependency from main table to result
                 if isinstance(statement, Select):
-                    dependencies[to_table].add(Edge(from_table, to_table, statement))
+                    self._add_dependency(
+                        dependencies, Edge(from_table, to_table, statement)
+                    )
                 else:
                     # For data modification operations (DML)
                     dependencies[to_table].add(Edge(from_table, to_table, statement))
@@ -356,7 +358,9 @@ class SqlAst:
                 # USING defines the source table
                 if "using" in statement.args and statement.args["using"]:
                     using_table = self.get_table_name(statement.args["using"])
-                    dependencies[to_table].add(Edge(using_table, to_table, statement))
+                    self._add_dependency(
+                        dependencies, Edge(using_table, to_table, statement)
+                    )
 
                 # Check merge conditions
                 if "on" in statement.args and statement.args["on"]:
@@ -520,6 +524,7 @@ class SqlAst:
                         dependencies[left_table].add(
                             Edge(right_table, left_table, node)
                         )
+
         except Exception as e:
             print(f"Error processing nested JOINs: {e}")
 
@@ -542,7 +547,9 @@ class SqlAst:
 
             # Add dependency: from right_table to left_table
             if left_table and right_table:
-                dependencies[left_table].add(Edge(right_table, left_table, join_node))
+                self._add_dependency(
+                    dependencies, Edge(right_table, left_table, join_node)
+                )
                 print(f"Added JOIN dependency: {right_table} -> {left_table}")
             else:
                 print(

@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from base.storage import GraphStorage
 
 
-class GraphVisualizer:
+class ColumnVisualizer:
     """Class for visualizing dependency graphs."""
 
     def render(self, storage: GraphStorage, title: Optional[str] = None):
@@ -15,13 +15,14 @@ class GraphVisualizer:
         G.add_nodes_from(storage.nodes)
         G.add_edges_from(storage.edges)
         plt.figure(figsize=(12, 8))
+        fig = plt.gcf()
+        ax = plt.gca()
         try:
             pos = nx.spring_layout(G, k=0.5, iterations=50)  # Улучшаем layout
 
             # Получаем цвета рёбер
             edge_colors = [data["color"] for u, v, data in G.edges(data=True)]
 
-            # Подготовка меток для рёбер
             edge_labels = {
                 (u, v, k): d["operation"]
                 for u, v, k, d in G.edges(keys=True, data=True)
@@ -48,13 +49,57 @@ class GraphVisualizer:
                 arrowsize=15,
                 connectionstyle=connectionstyle,
             )
-            nx.draw_networkx_edge_labels(
+            label_list = nx.draw_networkx_edge_labels(
                 G,
                 pos,
                 edge_labels=edge_labels,
                 font_size=9,
                 connectionstyle=connectionstyle,
             )
+            for txt in label_list.values():
+                txt.set_picker(5)
+
+            last_ann = None
+
+            def on_pick(event):
+                nonlocal last_ann
+                label = event.artist  # Text-лейбл, на который кликнули
+
+                # удаляем предыдущую аннотацию
+                if last_ann is not None:
+                    last_ann.remove()
+                    last_ann = None
+
+                # находим ключ ребра и атрибуты
+                u, v, k = next(key for key, val in label_list.items() if val is label)
+                attrs = G.edges[u, v, k]
+                columns_parsed = attrs.get("columns", None)
+                info = ""
+                if columns_parsed is not None:
+                    if columns_parsed[0] is not None and len(columns_parsed[0]) > 0:
+                        info = "Columns "
+                        if ":" in columns_parsed[0][0]:
+                            info += "to:from\n  "
+                        else:
+                            info += "to\n  "
+                        info += "\n  ".join(columns_parsed[0])
+                    if columns_parsed[1] is not None and len(columns_parsed[1]) > 0:
+                        info += "\nWhere columns\n  "
+                        info += "\n  ".join(columns_parsed[1])
+
+                x, y = label.get_position()
+                last_ann = ax.annotate(
+                    info,
+                    xy=(x, y),
+                    xycoords="data",
+                    xytext=(20, 20),
+                    textcoords="offset points",
+                    bbox=dict(boxstyle="round,pad=0.3", alpha=0.8),
+                    arrowprops=dict(arrowstyle="->"),
+                )
+                fig.canvas.draw_idle()
+
+            fig.canvas.mpl_connect("pick_event", on_pick)
 
             if title:
                 plt.title(title)
