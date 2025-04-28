@@ -395,16 +395,6 @@ class SqlAst:
                             set_item.args["expression"], to_table, dependencies
                         )
 
-            elif isinstance(statement, Insert) and "expression" in statement.args:
-                # Process SELECT inside INSERT
-                expr = statement.args["expression"]
-                if isinstance(expr, Select):
-                    self._process_statement_tree(expr, to_table, dependencies)
-
-                if isinstance(expr, Values):
-                    from_table = f"input {self._get_input_id()}"
-                    dependencies[to_table].add(Edge(from_table, to_table, statement))
-
             # Process WHERE conditions, which may contain subqueries
             if "where" in statement.args and statement.args["where"] is not None:
                 self._extract_table_dependencies(
