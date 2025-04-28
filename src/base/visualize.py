@@ -2,40 +2,41 @@ import networkx as nx
 from typing import Optional
 from matplotlib import pyplot as plt
 from base.storage import GraphStorage
+from logger_config import logger  # Добавлен импорт логгера
 
 
 class GraphVisualizer:
     """Class for visualizing dependency graphs."""
 
     def render(self, storage: GraphStorage, title: Optional[str] = None):
-        if not storage.nodes:
-            print("Graph is empty, no dependencies to display.")
-            return
-        G = nx.MultiDiGraph()
-        G.add_nodes_from(storage.nodes)
-        G.add_edges_from(storage.edges)
-        plt.figure(figsize=(12, 8))
         try:
-            pos = nx.spring_layout(G, k=0.5, iterations=50)  # Улучшаем layout
+            if not storage.nodes:
+                logger.warning(
+                    "Graph is empty, no dependencies to display"
+                )  # Замена print на logger.warning
+                return
 
-            # Получаем цвета рёбер
-            edge_colors = [data["color"] for u, v, data in G.edges(data=True)]
+            G = nx.MultiDiGraph()
+            G.add_nodes_from(storage.nodes)
+            G.add_edges_from(
+                (u, v, {"operation": data["operation"], "color": data["color"]})
+                for u, v, data in storage.edges
+            )
 
-            # Подготовка меток для рёбер
+            logger.debug(
+                f"Created graph with {len(storage.nodes)} nodes and {len(storage.edges)} edges"
+            )  # Детальное логирование
+
+            plt.figure(figsize=(12, 8))
+            pos = nx.spring_layout(G, k=0.5, iterations=50)
+
+            # Подготовка данных для отрисовки
+            edge_colors = [data["color"] for _, _, data in G.edges(data=True)]
             edge_labels = {
-                (u, v, k): d["operation"]
-                for u, v, k, d in G.edges(keys=True, data=True)
+                (u, v): data["operation"] for u, v, data in G.edges(data=True)
             }
 
-            # насколько одна связь отдаляется от другой
-            step = 0.1
-            # максимальное количество отображаемых связей между двумя нодами
-            multi_edge_lim = 10
-            connectionstyle = [
-                f"arc3,rad={(-1)**(i+1)*((i+1)//2*step)}" for i in range(multi_edge_lim)
-            ]
-
-            # Отрисовка графа
+            # Отрисовка основных элементов
             nx.draw(
                 G,
                 pos,
@@ -46,22 +47,26 @@ class GraphVisualizer:
                 node_size=2000,
                 arrows=True,
                 arrowsize=15,
-                connectionstyle=connectionstyle,
+                connectionstyle="arc3,rad=0.1",
             )
+
+            # Добавление подписей к ребрам
             nx.draw_networkx_edge_labels(
-                G,
-                pos,
-                edge_labels=edge_labels,
-                font_size=9,
-                connectionstyle=connectionstyle,
+                G, pos, edge_labels=edge_labels, font_size=9, label_pos=0.75
             )
 
             if title:
                 plt.title(title)
+
             plt.tight_layout()
+            logger.info(f"Rendering graph: {title or 'Untitled'}")  # Логирование этапа
             plt.show()
+            logger.debug("Graph displayed successfully")  # Подтверждение успеха
+
         except Exception as e:
-            print(f"Error visualizing graph: {e}")
-            print(
+            logger.error(
+                f"Visualization error: {e}", exc_info=True
+            )  # Детальный лог ошибки
+            logger.warning(
                 "You may need to run this in an environment that supports matplotlib display."
             )

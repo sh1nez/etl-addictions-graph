@@ -15,6 +15,7 @@ from sqlglot.expressions import (
 )
 from util.dialect import safe_parse
 from base.storage import Edge
+from logger_config import logger  # Добавлен импорт логгера
 
 
 class SqlAst:
@@ -27,7 +28,9 @@ class SqlAst:
     _transfer_id = 0
 
     def __init__(self, sql_code: str, sep_parse: bool = False):
+        logger.debug("Initializing SqlAst")
         if not sql_code or not isinstance(sql_code, str):
+            logger.error("Invalid input: Not a valid SQL string")
             self.corrected_sql = ""
             self.corrections = ["Invalid input: Not a valid SQL string"]
             self.sql_code = ""
@@ -48,8 +51,11 @@ class SqlAst:
             self.parsed, self.dialect = safe_parse(self.corrected_sql)
             assert self.parsed is not None
             self.dependencies = self._extract_dependencies()
+            logger.info(
+                f"Parsed SQL and extracted dependencies: {len(self.dependencies)} tables"
+            )
         except Exception as e:
-            print(f"Error parsing SQL: {e}")
+            logger.error(f"Error parsing SQL: {e}", exc_info=True)
             self.parsed = None
             self.dependencies = defaultdict(set)
             self.corrections.append(f"Error parsing SQL: {str(e)}")
@@ -57,234 +63,175 @@ class SqlAst:
     def _add_dependency(self, dependencies: defaultdict, edge: Edge):
         if edge.to_table != edge.from_table:
             dependencies[edge.to_table].add(edge)
+            logger.debug(
+                f"Dependency added: {edge.from_table} -> {edge.to_table} [{type(edge.op).__name__}]"
+            )
 
     def _extract_dependencies(self) -> defaultdict:
         """Extracts dependencies between tables and operations including ETL, SELECT and JOIN queries."""
+        logger.debug("Starting dependency extraction")
         dependencies = defaultdict(set)
         etl_types = (Insert, Update, Delete, Merge)
         try:
             for statement in self.parsed:
-                # Сначала определяем целевую таблицу (для операций модификации данных)
+                # Сначала определяем целевую таблицу
                 self._statement_count += 1
                 to_table = None
-                if isinstance(statement, etl_types):
-                    if "this" in statement.args:
-                        to_table = self.get_table_name(statement)
+                if isinstance(statement, etl_types) and "this" in statement.args:
+                    to_table = self.get_table_name(statement)
                 elif (
                     isinstance(statement, Select)
                     and hasattr(statement, "into")
-                    and statement.into is not None
+                    and statement.into
                 ):
                     to_table = self.get_table_name(statement.into)
                 else:
                     to_table = f"result {self._get_output_id()}"
+
                 if isinstance(statement, Insert):
-                    input_node = f"input {self._statement_count - 1}"  # уникальное имя
+                    input_node = f"input {self._statement_count - 1}"
                     self._add_dependency(
                         dependencies, Edge(input_node, to_table, statement)
                     )
 
-                # Обрабатываем основной запрос и все подзапросы
                 self._process_statement_tree(statement, to_table, dependencies)
 
+            logger.info(
+                f"Extracted dependencies for {self._statement_count} statements"
+            )
         except Exception as e:
-            print(f"Error in dependency extraction: {e}")
-
+            logger.error(f"Error in dependency extraction: {e}", exc_info=True)
         return dependencies
 
     def _process_statement_tree(self, statement, to_table, dependencies):
         """Рекурсивно обрабатывает запрос и его подзапросы для извлечения зависимостей."""
         try:
-            # Обработка основной таблицы FROM
-            if "from" in statement.args and statement.args["from"] is not None:
+            # FROM clause
+            if "from" in statement.args and statement.args["from"]:
                 from_table = self.get_table_name(statement.args["from"])
-                # Добавляем зависимость от основной таблицы к результату
-                if isinstance(statement, Select):
-                    self._add_dependency(
-                        dependencies, Edge(from_table, to_table, statement)
-                    )
-                else:
-                    # Для операций модификации данных (DML)
-                    self._add_dependency(
-                        dependencies, Edge(from_table, to_table, statement)
-                    )
+                self._add_dependency(
+                    dependencies, Edge(from_table, to_table, statement)
+                )
 
+            # MERGE specific
             if isinstance(statement, Merge):
-                # Using определяет таблицу источник
-                if "using" in statement.args and statement.args["using"]:
+                if statement.args.get("using"):
                     using_table = self.get_table_name(statement.args["using"])
                     self._add_dependency(
                         dependencies, Edge(using_table, to_table, statement)
                     )
 
-                # Проверка merge условий
-                if "on" in statement.args and statement.args["on"]:
+                if statement.args.get("on"):
                     self._extract_table_dependencies(
                         statement.args["on"], to_table, dependencies
                     )
 
-                # Проверка дополнительных условий
-                if "expressions" in statement.args:
-                    for expr in statement.args["expressions"]:
+                for expr in statement.args.get("expressions", []):
+                    self._extract_table_dependencies(expr, to_table, dependencies)
+
+            # JOINs
+            for join_node in statement.args.get("joins", []):
+                join_table = self.get_table_name(join_node.args.get("this"))
+                simple_join = Join()
+                self._add_dependency(
+                    dependencies, Edge(join_table, to_table, simple_join)
+                )
+
+            # UPDATE set expressions
+            if isinstance(statement, Update):
+                for set_item in statement.args.get("set", []):
+                    expr = set_item.args.get("expression")
+                    if expr:
                         self._extract_table_dependencies(expr, to_table, dependencies)
 
-            # Обработка JOIN в любых запросах
-            if "joins" in statement.args and statement.args["joins"]:
-                for join_node in statement.args["joins"]:
-                    if "this" in join_node.args:
-                        join_table = self.get_table_name(join_node.args["this"])
-
-                        # Создаем объект JOIN для графа
-                        simple_join = Join()
-
-                        # Добавляем зависимость от JOIN-таблицы к целевой таблице
-                        self._add_dependency(
-                            dependencies, Edge(join_table, to_table, simple_join)
-                        )
-
-            # Обработка выражений в запросах UPDATE и INSERT
-            if isinstance(statement, Update) and "set" in statement.args:
-                # В UPDATE могут быть скрытые зависимости в SET выражениях
-                for set_item in statement.args["set"]:
-                    if "expression" in set_item.args:
-                        self._extract_table_dependencies(
-                            set_item.args["expression"], to_table, dependencies
-                        )
-
-            elif isinstance(statement, Insert) and "expression" in statement.args:
-                # Обработка SELECT внутри INSERT
+            # INSERT expression
+            if isinstance(statement, Insert) and statement.args.get("expression"):
                 expr = statement.args["expression"]
                 if isinstance(expr, Select):
                     self._process_statement_tree(expr, to_table, dependencies)
-
-                if isinstance(expr, Values):
-                    from_table = f"input {self._get_output_id()}"
+                elif isinstance(expr, Values):
+                    in_node = f"input {self._get_output_id()}"
                     self._add_dependency(
-                        dependencies, Edge(from_table, to_table, statement)
+                        dependencies, Edge(in_node, to_table, statement)
                     )
 
-            # Обработка WHERE условий, которые могут содержать подзапросы
-            if "where" in statement.args and statement.args["where"] is not None:
+            # WHERE clause
+            if statement.args.get("where"):
                 self._extract_table_dependencies(
                     statement.args["where"], to_table, dependencies
                 )
-
         except Exception as e:
-            print(f"Error processing statement tree: {e}")
+            logger.error(f"Error processing statement tree: {e}", exc_info=True)
 
     def _extract_table_dependencies(self, expression, to_table, dependencies):
         """Извлекает зависимости от таблиц из выражения."""
         try:
-            # Ищем все подзапросы внутри выражения
             for node in expression.walk():
                 if isinstance(node, Select):
                     self._process_statement_tree(node, to_table, dependencies)
-
-                # Ищем прямые ссылки на таблицы
                 elif isinstance(node, Table):
                     table_name = self.get_table_name(node)
-                    # Добавляем прямую зависимость
                     self._add_dependency(dependencies, Edge(table_name, to_table, node))
-
         except Exception as e:
-            print(f"Error extracting table dependencies: {e}")
+            logger.error(f"Error extracting table dependencies: {e}", exc_info=True)
 
     def _extract_join_dependencies(self, select_statement, dependencies):
         """Extract JOIN dependencies from a SELECT statement."""
         try:
-            if "from" not in select_statement.args:
-                return
-
-            # Извлекаем базовую таблицу из FROM
-            from_clause = select_statement.args["from"]
-            base_table = self.get_table_name(from_clause)
-
-            # Обработка списка JOIN'ов
-            if "joins" in select_statement.args and select_statement.args["joins"]:
-                for join_node in select_statement.args["joins"]:
-                    joined_table = self.get_table_name(join_node.args.get("this"))
-                    if base_table and joined_table:
-                        # Создаем связь между таблицами
-                        self._add_dependency(
-                            dependencies, Edge(joined_table, base_table, join_node)
-                        )
-
-            # Также проверяем вложенные JOIN'ы в FROM
-            self._find_nested_joins(from_clause, dependencies)
-
+            base_table = self.get_table_name(select_statement.args.get("from"))
+            for join_node in select_statement.args.get("joins", []):
+                joined_table = self.get_table_name(join_node.args.get("this"))
+                self._add_dependency(
+                    dependencies, Edge(joined_table, base_table, join_node)
+                )
+            self._find_nested_joins(select_statement.args.get("from"), dependencies)
         except Exception as e:
-            print(f"Error extracting JOIN dependencies: {e}")
+            logger.error(f"Error extracting JOIN dependencies: {e}", exc_info=True)
 
     def _find_nested_joins(self, expr, dependencies):
         """Find nested JOIN operations within expressions."""
         try:
             for node in expr.walk():
                 if isinstance(node, Join):
-                    left_table = self._extract_table_name(node.args.get("this"))
-                    right_table = self._extract_table_name(node.args.get("expression"))
-
-                    if left_table and right_table:
-                        # Создаем связь между таблицами
-                        self._add_dependency(
-                            dependencies, Edge(right_table, left_table, node)
-                        )
-
+                    left = self._extract_table_name(node.args.get("this"))
+                    right = self._extract_table_name(node.args.get("expression"))
+                    if left and right:
+                        self._add_dependency(dependencies, Edge(right, left, node))
         except Exception as e:
-            print(f"Error processing nested JOINs: {e}")
+            logger.error(f"Error processing nested JOINs: {e}", exc_info=True)
 
     def _process_join(self, join_node, dependencies):
         """Process a single JOIN node and extract table dependencies."""
         try:
-            left_expr = join_node.args.get("this")
-            right_expr = join_node.args.get("expression")
-            if left_expr is None or right_expr is None:
-                print(
-                    f"Skipping JOIN due to missing expression: left_expr={left_expr}, right_expr={right_expr}"
-                )
-                return
-
-            left_table = self._extract_table_name(left_expr)
-            print(f"Left table extracted: {left_table}")  # Debug statement
-
-            right_table = self._extract_table_name(right_expr)
-            print(f"Right table extracted: {right_table}")  # Debug statement
-
-            # Добавляем зависимость: из right_table в left_table
-            if left_table and right_table:
-                self._add_dependency(
-                    dependencies, Edge(right_table, left_table, join_node)
-                )
-                print(f"Added JOIN dependency: {right_table} -> {left_table}")
+            left = self._extract_table_name(join_node.args.get("this"))
+            right = self._extract_table_name(join_node.args.get("expression"))
+            logger.debug(f"Processing JOIN: left={left}, right={right}")
+            if left and right:
+                self._add_dependency(dependencies, Edge(right, left, join_node))
+                logger.info(f"Added JOIN dependency: {right} -> {left}")
             else:
-                print(
-                    f"Could not extract both tables from JOIN: left={left_table}, right={right_table}"
+                logger.warning(
+                    f"Skipping JOIN, missing tables: left={left}, right={right}"
                 )
         except Exception as e:
-            print(f"Error processing JOIN: {e}")
+            logger.error(f"Error processing JOIN: {e}", exc_info=True)
 
     def _extract_table_name(self, expr):
         """Helper method to extract table name from an expression."""
         if expr is None:
             return None
-
-        # Прямая обработка для объектов Table
         if isinstance(expr, Table):
             try:
                 return expr.args["this"].args["this"]
-            except (KeyError, AttributeError):
+            except Exception:
                 pass
-
-        # Поиск таблиц внутри выражения
         tables = []
         for node in expr.walk():
             if isinstance(node, Table):
                 try:
-                    table_name = node.args["this"].args["this"]
-                    tables.append(table_name)
-                except (KeyError, AttributeError):
+                    tables.append(node.args["this"].args["this"])
+                except Exception:
                     pass
-
-        # Возвращаем первую найденную таблицу или None
         return tables[0] if tables else None
 
     def get_dependencies(self) -> defaultdict:
@@ -296,83 +243,59 @@ class SqlAst:
     def get_table_name(self, parsed) -> str:
         """Улучшенный метод извлечения имени таблицы, поддерживающий алиасы."""
         try:
-            # Если это уже строка, вернуть её
             if isinstance(parsed, str):
                 return parsed
-
-            # Прямая обработка таблицы
-            if isinstance(parsed, Table):
-                # Извлекаем основное имя таблицы
-                if "this" in parsed.args:
-                    table_obj = parsed.args["this"]
-                    if hasattr(table_obj, "args") and "this" in table_obj.args:
-                        table_name = table_obj.args["this"]
-
-                        # Проверяем наличие алиаса
-                        if "alias" in parsed.args and parsed.args["alias"] is not None:
-                            alias = parsed.args["alias"].args["this"]
-                            return f"{table_name} ({alias})"
-                        return table_name
-
-            # Рекурсивный поиск таблицы в цепочке атрибутов
+            if isinstance(parsed, Table) and "this" in parsed.args:
+                table_obj = parsed.args["this"]
+                table_name = table_obj.args.get("this")
+                alias = parsed.args.get("alias")
+                if alias:
+                    return f"{table_name} ({alias.args.get('this')})"
+                return table_name
             counter = 0
             current = parsed
-            while hasattr(current, "args") and "this" in current.args and counter < 100:
-                counter += 1
+            while hasattr(current, "args") and counter < 100:
                 if isinstance(current, Table):
-                    table_name = current.args["this"].args["this"]
-                    # Проверяем наличие алиаса
-                    if "alias" in current.args and current.args["alias"] is not None:
-                        alias = current.args["alias"].args["this"]
-                        return f"{table_name} ({alias})"
-                    return table_name
-                current = current.args["this"]
-
-            # Поиск в других атрибутах
+                    name = current.args["this"].args.get("this")
+                    alias = current.args.get("alias")
+                    if alias:
+                        return f"{name} ({alias.args.get('this')})"
+                    return name
+                current = current.args.get("this")
+                counter += 1
             if hasattr(parsed, "args"):
-                for key, value in parsed.args.items():
+                for value in parsed.args.values():
                     if isinstance(value, Table):
                         return self.get_table_name(value)
-
-            # Если не нашли таблицу
             return f"unknown {self._get_unknown_id()}"
         except Exception as e:
-            print(f"Error in get_table_name: {e}")
+            logger.error(f"Error in get_table_name: {e}", exc_info=True)
             return f"unknown {self._get_unknown_id()}"
 
     def get_first_from(self, stmt) -> Optional[str]:
         """Улучшенный метод для извлечения первой таблицы FROM в запросе."""
         try:
-            # Проверяем наличие FROM
-            if "from" in stmt.args and stmt.args["from"] is not None:
+            if stmt.args.get("from"):
                 return self.get_table_name(stmt.args["from"])
-
-            # Проверяем наличие выражения (например, в INSERT)
-            if "expression" in stmt.args and stmt.args["expression"] is not None:
-                expr = stmt.args["expression"]
-                if isinstance(expr, Select) and "from" in expr.args:
-                    return self.get_table_name(expr.args["from"])
-                return self.get_first_from(expr)
-
-            # Ищем подзапросы в дереве
-            for key, value in stmt.args.items():
-                if isinstance(value, Select) and "from" in value.args:
-                    return self.get_table_name(value.args["from"])
-
+            expr = stmt.args.get("expression")
+            if isinstance(expr, Select):
+                return self.get_table_name(expr.args.get("from"))
+            for value in stmt.args.values():
+                if isinstance(value, Select):
+                    return self.get_table_name(value.args.get("from"))
         except Exception as e:
-            print(f"Error in get_first_from: {e}")
+            logger.error(f"Error in get_first_from: {e}", exc_info=True)
         return None
 
     def find_all(self, expr_type, obj=None):
         """Helper method to find all instances of a type within an expression tree."""
-        if obj is None:
-            obj = self.parsed
         result = []
-        if isinstance(obj, list):
-            for item in obj:
+        items = obj or self.parsed
+        if isinstance(items, list):
+            for item in items:
                 result.extend(self.find_all(expr_type, item))
-        elif hasattr(obj, "walk"):
-            for node in obj.walk():
+        elif hasattr(items, "walk"):
+            for node in items.walk():
                 if isinstance(node, expr_type):
                     result.append(node)
         return result
@@ -404,38 +327,42 @@ class DirectoryParser:
 
     def __init__(self, sql_ast_cls: SqlAst):
         self.sql_ast_cls = sql_ast_cls
+        logger.debug("DirectoryParser initialized with SqlAst class")
 
     def parse_directory(
         self, directory: str, sep_parse: bool = False
     ) -> List[Tuple[defaultdict, List[str], str]]:
+        logger.info(f"Parsing directory: {directory}")
         results = []
         if not os.path.exists(directory):
-            print(f"Error: Directory {directory} does not exist!")
+            logger.error(f"Directory does not exist: {directory}")
             return results
         if not os.path.isdir(directory):
-            print(f"Error: {directory} is not a directory!")
+            logger.error(f"Not a directory: {directory}")
             return results
-        print(f"Processing files in directory: {directory}")
+        logger.debug(f"Walking directory tree: {realpath(directory)}")
         for root, _, files in os.walk(directory):
-            print(f"Processing directory: {root}")
+            logger.debug(f"Processing directory: {root}")
             for file in files:
                 if file.endswith(".ddl"):
                     file_path = os.path.join(root, file)
-                    print(f"Reading file: {file_path}")
+                    logger.debug(f"Reading file: {file_path}")
                     try:
                         with open(file_path, "r", encoding="utf-8") as f:
                             sql_code = f.read()
                             ast = self.sql_ast_cls(sql_code, sep_parse)
-                            results.append(
-                                (
-                                    ast.get_dependencies(),
-                                    ast.get_corrections(),
-                                    file_path,
-                                )
+                            deps = ast.get_dependencies()
+                            corrs = ast.get_corrections()
+                            results.append((deps, corrs, file_path))
+                            logger.info(
+                                f"Parsed {file_path}: {len(corrs)} corrections, {len(deps)} tables"
                             )
                     except Exception as e:
-                        print(f"Error processing file {file_path}: {e}")
+                        logger.error(
+                            f"Error processing file {file_path}: {e}", exc_info=True
+                        )
                         results.append(
                             (defaultdict(set), [f"Error: {str(e)}"], file_path)
                         )
+        logger.info(f"Completed parsing directory: {len(results)} files processed")
         return results
