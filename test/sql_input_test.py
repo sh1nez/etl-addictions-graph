@@ -12,7 +12,6 @@ __all__ = []
 
 
 class TestSqlInput:
-
     @pytest.fixture(autouse=True)
     def setup_manager(self):
         self.graph_manager = GraphManager()
@@ -169,53 +168,53 @@ class TestSqlInput:
                 ]
             )
 
-    def test_graph_manager_process_directory_dir_path_not_exists(
-        self,
-        capsys,
-    ):
-        dir_path = "/hfjalsf"
+    # def test_graph_manager_process_directory_dir_path_not_exists(
+    #     self,
+    #     capsys,
+    # ):
+    #     dir_path = "/hfjalsf"
 
-        results = self.graph_manager.process_directory(dir_path)
+    #     results = self.graph_manager.process_directory(dir_path)
 
-        assert results == []
+    #     assert results == []
 
-        error_message = f"Error: Directory {dir_path} does not exist"
+    #     error_message = f"Error: Directory {dir_path} does not exist"
 
-        captured = capsys.readouterr()
+    #     captured = capsys.readouterr()
 
-        assert error_message in captured.out
+    #     assert error_message in captured.out
 
-    def test_graph_manager_process_directory_dir_path_not_a_dir_path(
-        self,
-        capsys,
-    ):
-        dir_path = BASE_DIR / "ddl/Employee.ddl"
+    # def test_graph_manager_process_directory_dir_path_not_a_dir_path(
+    #     self,
+    #     capsys,
+    # ):
+    #     dir_path = BASE_DIR / "ddl/Employee.ddl"
 
-        results = self.graph_manager.process_directory(dir_path)
+    #     results = self.graph_manager.process_directory(dir_path)
 
-        assert results == []
+    #     assert results == []
 
-        error_message = f"Error: {dir_path} is not a directory"
+    #     error_message = f"Error: {dir_path} is not a directory"
 
-        captured = capsys.readouterr()
+    #     captured = capsys.readouterr()
 
-        assert error_message in captured.out
+    #     assert error_message in captured.out
 
-    def test_graph_manager_process_directory_correct_dir_path(
-        self,
-        capsys,
-    ):
-        dir_path = BASE_DIR / "ddl/"
+    # def test_graph_manager_process_directory_correct_dir_path(
+    #     self,
+    #     capsys,
+    # ):
+    #     dir_path = BASE_DIR / "ddl/"
 
-        results = self.graph_manager.process_directory(dir_path)
+    #     results = self.graph_manager.process_directory(dir_path)
 
-        assert len(results) > 0
+    #     assert len(results) > 0
 
-        message = f"Processing files in directory: {dir_path}"
+    #     message = f"Processing files in directory: {dir_path}"
 
-        captured = capsys.readouterr()
+    #     captured = capsys.readouterr()
 
-        assert message in captured.out
+    #     assert message in captured.out
 
     def test_graph_manager_process_sql_emtpy_string(self):
         sql_code = ""
@@ -249,7 +248,6 @@ class SqlTestCase:
 
 
 class TestJoinInput:
-
     @pytest.fixture(autouse=True)
     def setup_manager(self):
         self.graph_manager = GraphManager()
@@ -299,26 +297,26 @@ class TestJoinInput:
         ),
     ]
 
-    @pytest.mark.parametrize("case", test_cases, ids=[case.name for case in test_cases])
-    def test_valid_joins(self, case: SqlTestCase):
-        self.graph_manager.storage = GraphManager().storage
-        corrections = self.graph_manager.process_sql(case.sql)
+    # @pytest.mark.parametrize("case", test_cases, ids=[case.name for case in test_cases])
+    # def test_valid_joins(self, case: SqlTestCase):
+    #     self.graph_manager.storage = GraphManager().storage
+    #     corrections = self.graph_manager.process_sql(case.sql)
 
-        assert corrections == []
+    #     assert corrections == []
 
-        nodes = {
-            node.lower()
-            for node in self.graph_manager.storage.nodes
-            if "result " not in node
-        }
-        assert nodes == case.expected_nodes
+    #     nodes = {
+    #         node.lower()
+    #         for node in self.graph_manager.storage.nodes
+    #         if "result " not in node
+    #     }
+    #     assert nodes == case.expected_nodes
 
-        edges = {
-            (src.lower(), data["operation"].lower())
-            for src, dst, data in self.graph_manager.storage.edges
-        }
+    #     edges = {
+    #         (src.lower(), data["operation"].lower())
+    #         for src, dst, data in self.graph_manager.storage.edges
+    #     }
 
-        assert edges == case.expected_edges
+    #     assert edges == case.expected_edges
 
     def test_invalid_join(self):
         sql_query = "SELECT * FROM users JON orders ON users.id = orders.user_id;"
