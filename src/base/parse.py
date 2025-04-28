@@ -20,7 +20,7 @@ from sqlglot.expressions import (
     Expression,
 )
 from util.dialect import safe_parse
-from storage import Edge
+from base.storage import Edge
 
 
 class SqlAst:
