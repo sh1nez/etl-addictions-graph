@@ -85,6 +85,7 @@ class SqlAst:
             # Check for recursive CTEs
             self._detect_recursive_ctes()
             logger.info("SQL parsing and dependency extraction completed.")
+
         except Exception as e:
             logger.error(f"Error parsing SQL: {e}")
             self.parsed = None
@@ -141,7 +142,6 @@ class SqlAst:
                 # Mark all CTEs in this WITH clause as potentially recursive
                 self._mark_ctes_as_recursive(statement)
                 logger.debug("Marked CTEs in WITH RECURSIVE as recursive.")
-
     def _register_ctes_from_with(self, with_statement):
         """Register CTEs from a WITH clause."""
         if "expressions" not in with_statement.args:
@@ -295,7 +295,6 @@ class SqlAst:
                         self._process_statement_tree(
                             statement.args["expression"], to_table, dependencies
                         )
-
                 # Process WITH clauses (Common Table Expressions)
                 if (
                     isinstance(statement, With)
@@ -304,6 +303,8 @@ class SqlAst:
                 ):
                     self._process_with_statement(statement, to_table, dependencies)
 
+                # Process the main statement and all subqueries
+                self._process_statement_tree(statement, to_table, dependencies)
                 # Process the main statement and all subqueries
                 self._process_statement_tree(statement, to_table, dependencies)
 
@@ -459,6 +460,31 @@ class SqlAst:
         except Exception as e:
             logger.error(f"Error handling CTE references: {e}")
 
+    def _handle_cte_references(self, statement, to_table, dependencies):
+        """Handle references to CTEs within a statement."""
+        try:
+            # Look for all table references that might be CTEs
+            for node in statement.walk():
+                if isinstance(node, Table):
+                    table_name = self.get_table_name(node)
+
+                    # If this table name matches a CTE name, it's a reference
+                    if table_name in self.cte_definitions:
+                        # Add dependency from CTE to current target
+                        dependencies[to_table].add(Edge(table_name, to_table, node))
+
+                        # If this is a recursive CTE and is referencing itself
+                        if table_name in self.recursive_ctes and to_table == table_name:
+                            # Mark as a recursive edge
+                            for edge in dependencies[to_table]:
+                                if (
+                                    edge.source == table_name
+                                    and edge.target == to_table
+                                ):
+                                    edge.is_recursive = True
+        except Exception as e:
+            print(f"Error handling CTE references: {e}")
+
     def _extract_table_dependencies(self, expression, to_table, dependencies):
         """Extract dependencies from tables in an expression."""
         try:
@@ -551,6 +577,7 @@ class SqlAst:
             if left_table and right_table:
                 dependencies[left_table].add(Edge(right_table, left_table, join_node))
                 logger.debug("Added JOIN dependency: %s -> %s", right_table, left_table)
+                
             else:
                 logger.warning(
                     "Could not extract both tables from JOIN: left=%s, right=%s",
