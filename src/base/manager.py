@@ -3,7 +3,7 @@ from base.parse import DirectoryParser
 from base.storage import GraphStorage
 from base.visualize import GraphVisualizer
 from base.parse import SqlAst
-from logger_config import logger  # Добавлен импорт логгера
+from logger_config import logger
 
 
 class GraphManager:
