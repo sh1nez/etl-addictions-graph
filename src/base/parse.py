@@ -56,7 +56,8 @@ class SqlAst:
 
         # Track CTE definitions and references for recursion detection
         self.cte_definitions = {}  # name -> CTE node
-        self.cte_references = defaultdict(set)  # CTE name -> set of referencing CTEs
+        # CTE name -> set of referencing CTEs
+        self.cte_references = defaultdict(set)
         self.recursive_ctes = set()  # Set of recursive CTE names
 
         try:
@@ -100,7 +101,8 @@ class SqlAst:
                             }
 
                 self.table_schema[table_name] = columns
-                logger.debug(f"Extracted schema for table %s: %s", table_name, columns)
+                logger.debug(f"Extracted schema for table %s: %s",
+                             table_name, columns)
 
     def _identify_all_ctes(self):
         """First pass to identify all CTEs in the SQL code."""
@@ -257,7 +259,8 @@ class SqlAst:
                 # Handle DML statements
                 elif isinstance(statement, etl_types):
                     if "this" in statement.args:
-                        to_table = self.get_table_name(statement.args.get("this"))
+                        to_table = self.get_table_name(
+                            statement.args.get("this"))
 
                 elif (
                     isinstance(statement, Select)
@@ -289,7 +292,8 @@ class SqlAst:
                     or "with" in statement.args
                     and statement.args["with"]
                 ):
-                    self._process_with_statement(statement, to_table, dependencies)
+                    self._process_with_statement(
+                        statement, to_table, dependencies)
 
                 # Process the main statement and all subqueries
                 self._process_statement_tree(statement, to_table, dependencies)
@@ -307,7 +311,8 @@ class SqlAst:
             cte_definition = cte_node.args["this"]
             # Process the CTE query expression
             if cte_definition:
-                self._process_statement_tree(cte_definition, cte_name, dependencies)
+                self._process_statement_tree(
+                    cte_definition, cte_name, dependencies)
 
             # For recursive CTEs, add a self-dependency
             if cte_name in self.recursive_ctes:
@@ -318,10 +323,12 @@ class SqlAst:
     def _process_with_statement(self, statement, to_table, dependencies):
         """Process a WITH statement or a statement containing a WITH clause."""
         with_clause = (
-            statement if isinstance(statement, With) else statement.args["with"]
+            statement if isinstance(
+                statement, With) else statement.args["with"]
         )
         main_query = (
-            statement.args.get("this") if isinstance(statement, With) else statement
+            statement.args.get("this") if isinstance(
+                statement, With) else statement
         )
 
         # Process each CTE
@@ -353,17 +360,20 @@ class SqlAst:
                 from_table = self.get_table_name(statement.args["from"])
                 # Add dependency from main table to result
                 if isinstance(statement, Select):
-                    dependencies[to_table].add(Edge(from_table, to_table, statement))
+                    dependencies[to_table].add(
+                        Edge(from_table, to_table, statement))
                 else:
                     # For data modification operations (DML)
-                    dependencies[to_table].add(Edge(from_table, to_table, statement))
+                    dependencies[to_table].add(
+                        Edge(from_table, to_table, statement))
 
             # Process MERGE operations
             if isinstance(statement, Merge):
                 # USING defines the source table
                 if "using" in statement.args and statement.args["using"]:
                     using_table = self.get_table_name(statement.args["using"])
-                    dependencies[to_table].add(Edge(using_table, to_table, statement))
+                    dependencies[to_table].add(
+                        Edge(using_table, to_table, statement))
 
                 # Check merge conditions
                 if "on" in statement.args and statement.args["on"]:
@@ -374,13 +384,15 @@ class SqlAst:
                 # Check additional conditions
                 if "expressions" in statement.args:
                     for expr in statement.args["expressions"]:
-                        self._extract_table_dependencies(expr, to_table, dependencies)
+                        self._extract_table_dependencies(
+                            expr, to_table, dependencies)
 
             # Process JOINs in any queries
             if "joins" in statement.args and statement.args["joins"]:
                 for join_node in statement.args["joins"]:
                     if "this" in join_node.args:
-                        join_table = self.get_table_name(join_node.args["this"])
+                        join_table = self.get_table_name(
+                            join_node.args["this"])
 
                         # Create JOIN object for the graph
                         dependencies[to_table].add(
@@ -418,7 +430,8 @@ class SqlAst:
             # Process SELECT list items for subqueries
             if "expressions" in statement.args and isinstance(statement, Select):
                 for expr in statement.args["expressions"]:
-                    self._extract_table_dependencies(expr, to_table, dependencies)
+                    self._extract_table_dependencies(
+                        expr, to_table, dependencies)
 
         except Exception as e:
             print(f"Error processing statement tree: {e}")
@@ -434,7 +447,8 @@ class SqlAst:
                     # If this table name matches a CTE name, it's a reference
                     if table_name in self.cte_definitions:
                         # Add dependency from CTE to current target
-                        dependencies[to_table].add(Edge(table_name, to_table, node))
+                        dependencies[to_table].add(
+                            Edge(table_name, to_table, node))
 
                         # If this is a recursive CTE and is referencing itself
                         if table_name in self.recursive_ctes and to_table == table_name:
@@ -447,31 +461,6 @@ class SqlAst:
                                     edge.is_recursive = True
         except Exception as e:
             logger.error(f"Error handling CTE references: {e}")
-
-    def _handle_cte_references(self, statement, to_table, dependencies):
-        """Handle references to CTEs within a statement."""
-        try:
-            # Look for all table references that might be CTEs
-            for node in statement.walk():
-                if isinstance(node, Table):
-                    table_name = self.get_table_name(node)
-
-                    # If this table name matches a CTE name, it's a reference
-                    if table_name in self.cte_definitions:
-                        # Add dependency from CTE to current target
-                        dependencies[to_table].add(Edge(table_name, to_table, node))
-
-                        # If this is a recursive CTE and is referencing itself
-                        if table_name in self.recursive_ctes and to_table == table_name:
-                            # Mark as a recursive edge
-                            for edge in dependencies[to_table]:
-                                if (
-                                    edge.source == table_name
-                                    and edge.target == to_table
-                                ):
-                                    edge.is_recursive = True
-        except Exception as e:
-            print(f"Error handling CTE references: {e}")
 
     def _extract_table_dependencies(self, expression, to_table, dependencies):
         """Extract dependencies from tables in an expression."""
@@ -495,10 +484,12 @@ class SqlAst:
                     # Check if this is a CTE reference
                     if table_name in self.cte_definitions:
                         # Add dependency from CTE to current target
-                        dependencies[to_table].add(Edge(table_name, to_table, node))
+                        dependencies[to_table].add(
+                            Edge(table_name, to_table, node))
                     else:
                         # Regular table reference
-                        dependencies[to_table].add(Edge(table_name, to_table, node))
+                        dependencies[to_table].add(
+                            Edge(table_name, to_table, node))
 
         except Exception as e:
             print(f"Error extracting table dependencies: {e}")
@@ -516,7 +507,8 @@ class SqlAst:
             # Process the list of JOINs
             if "joins" in select_statement.args and select_statement.args["joins"]:
                 for join_node in select_statement.args["joins"]:
-                    joined_table = self.get_table_name(join_node.args.get("this"))
+                    joined_table = self.get_table_name(
+                        join_node.args.get("this"))
                     if base_table and joined_table:
                         # Create a relationship between tables
                         dependencies[base_table].add(
@@ -534,8 +526,10 @@ class SqlAst:
         try:
             for node in expr.walk():
                 if isinstance(node, Join):
-                    left_table = self._extract_table_name(node.args.get("this"))
-                    right_table = self._extract_table_name(node.args.get("expression"))
+                    left_table = self._extract_table_name(
+                        node.args.get("this"))
+                    right_table = self._extract_table_name(
+                        node.args.get("expression"))
 
                     if left_table and right_table:
                         # Create a relationship between tables
@@ -552,7 +546,8 @@ class SqlAst:
             right_expr = join_node.args.get("expression")
             if left_expr is None or right_expr is None:
                 print(
-                    f"Skipping JOIN due to missing expression: left_expr={left_expr}, right_expr={right_expr}"
+                    f"Skipping JOIN due to missing expression: left_expr={
+                        left_expr}, right_expr={right_expr}"
                 )
                 return
 
@@ -564,12 +559,15 @@ class SqlAst:
 
             # Add dependency: from right_table to left_table
             if left_table and right_table:
-                dependencies[left_table].add(Edge(right_table, left_table, join_node))
-                logger.debug("Added JOIN dependency: %s -> %s", right_table, left_table)
+                dependencies[left_table].add(
+                    Edge(right_table, left_table, join_node))
+                logger.debug("Added JOIN dependency: %s -> %s",
+                             right_table, left_table)
 
             else:
                 print(
-                    f"Could not extract both tables from JOIN: left={left_table}, right={right_table}"
+                    f"Could not extract both tables from JOIN: left={
+                        left_table}, right={right_table}"
                 )
         except Exception as e:
             print(f"Error processing JOIN: {e}")
