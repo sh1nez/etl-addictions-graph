@@ -1,4 +1,3 @@
-import logging
 from functools import total_ordering
 import os
 from collections import defaultdict
@@ -23,18 +22,6 @@ from sqlglot.expressions import (
 from util.dialect import safe_parse
 from base.storage import Edge
 
-# Configure module-level logger
-logger = logging.getLogger(__name__)
-if not logger.handlers:
-    # Prevent adding multiple handlers in interactive environments
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-logger.setLevel(logging.INFO)
-
 
 class SqlAst:
     """Class for building AST of SQL queries."""
@@ -54,7 +41,6 @@ class SqlAst:
             self.parsed = None
             self.dependencies = defaultdict(set)
             return
-
         self.corrections = []
         self.sql_code = sql_code
         self.corrected_sql = self.sql_code
@@ -73,7 +59,6 @@ class SqlAst:
         self.recursive_ctes = set()  # Set of recursive CTE names
 
         try:
-            logger.debug("Parsing SQL code.")
             self.parsed, self.dialect = safe_parse(self.corrected_sql)
             assert self.parsed is not None
             # Extract schema information first (when available)
@@ -84,9 +69,8 @@ class SqlAst:
             self.dependencies = self._extract_dependencies()
             # Check for recursive CTEs
             self._detect_recursive_ctes()
-            logger.info("SQL parsing and dependency extraction completed.")
         except Exception as e:
-            logger.error(f"Error parsing SQL: {e}")
+            print(f"Error parsing SQL: {e}")
             self.parsed = None
             self.dependencies = defaultdict(set)
             self.corrections.append(f"Error parsing SQL: {str(e)}")
@@ -113,7 +97,6 @@ class SqlAst:
                             }
 
                 self.table_schema[table_name] = columns
-                logger.debug(f"Extracted schema for table %s: %s", table_name, columns)
 
     def _identify_all_ctes(self):
         """First pass to identify all CTEs in the SQL code."""
@@ -140,7 +123,6 @@ class SqlAst:
             if is_recursive:
                 # Mark all CTEs in this WITH clause as potentially recursive
                 self._mark_ctes_as_recursive(statement)
-                logger.debug("Marked CTEs in WITH RECURSIVE as recursive.")
 
     def _register_ctes_from_with(self, with_statement):
         """Register CTEs from a WITH clause."""
@@ -308,7 +290,7 @@ class SqlAst:
                 self._process_statement_tree(statement, to_table, dependencies)
 
         except Exception as e:
-            logger.error(f"Error in dependency extraction: {e}")
+            print(f"Error in dependency extraction: {e}")
 
         return dependencies
 
@@ -432,7 +414,7 @@ class SqlAst:
                     self._extract_table_dependencies(expr, to_table, dependencies)
 
         except Exception as e:
-            logger.error(f"Error processing statement tree: {e}")
+            print(f"Error processing statement tree: {e}")
 
     def _handle_cte_references(self, statement, to_table, dependencies):
         """Handle references to CTEs within a statement."""
@@ -457,7 +439,7 @@ class SqlAst:
                                 ):
                                     edge.is_recursive = True
         except Exception as e:
-            logger.error(f"Error handling CTE references: {e}")
+            print(f"Error handling CTE references: {e}")
 
     def _extract_table_dependencies(self, expression, to_table, dependencies):
         """Extract dependencies from tables in an expression."""
@@ -487,7 +469,7 @@ class SqlAst:
                         dependencies[to_table].add(Edge(table_name, to_table, node))
 
         except Exception as e:
-            logger.error(f"Error extracting table dependencies: {e}")
+            print(f"Error extracting table dependencies: {e}")
 
     def _extract_join_dependencies(self, select_statement, dependencies):
         """Extract JOIN dependencies from a SELECT statement."""
@@ -513,7 +495,7 @@ class SqlAst:
             self._find_nested_joins(from_clause, dependencies)
 
         except Exception as e:
-            logger.error(f"Error extracting JOIN dependencies: {e}")
+            print(f"Error extracting JOIN dependencies: {e}")
 
     def _find_nested_joins(self, expr, dependencies):
         """Find nested JOIN operations within expressions."""
@@ -529,7 +511,7 @@ class SqlAst:
                             Edge(right_table, left_table, node)
                         )
         except Exception as e:
-            logger.error(f"Error processing nested JOINs: {e}")
+            print(f"Error processing nested JOINs: {e}")
 
     def _process_join(self, join_node, dependencies):
         """Process a single JOIN node and extract table dependencies."""
@@ -537,28 +519,27 @@ class SqlAst:
             left_expr = join_node.args.get("this")
             right_expr = join_node.args.get("expression")
             if left_expr is None or right_expr is None:
-                logger.warning(
-                    "Skipping JOIN due to missing expression: left_expr=%s, right_expr=%s",
-                    left_expr,
-                    right_expr,
+                print(
+                    f"Skipping JOIN due to missing expression: left_expr={left_expr}, right_expr={right_expr}"
                 )
                 return
 
             left_table = self._extract_table_name(left_expr)
+            print(f"Left table extracted: {left_table}")  # Debug statement
+
             right_table = self._extract_table_name(right_expr)
+            print(f"Right table extracted: {right_table}")  # Debug statement
 
             # Add dependency: from right_table to left_table
             if left_table and right_table:
                 dependencies[left_table].add(Edge(right_table, left_table, join_node))
-                logger.debug("Added JOIN dependency: %s -> %s", right_table, left_table)
+                print(f"Added JOIN dependency: {right_table} -> {left_table}")
             else:
-                logger.warning(
-                    "Could not extract both tables from JOIN: left=%s, right=%s",
-                    left_table,
-                    right_table,
+                print(
+                    f"Could not extract both tables from JOIN: left={left_table}, right={right_table}"
                 )
         except Exception as e:
-            logger.error(f"Error processing JOIN: {e}")
+            print(f"Error processing JOIN: {e}")
 
     def _extract_table_name(self, expr):
         """Helper method to extract table name from an expression."""
@@ -643,7 +624,7 @@ class SqlAst:
             # If no table found
             return f"unknown {self._get_unknown_id()}"
         except Exception as e:
-            logger.error(f"Error in get_table_name: {e}")
+            print(f"Error in get_table_name: {e}")
             return f"unknown {self._get_unknown_id()}"
 
     def get_first_from(self, stmt) -> Optional[str]:
@@ -666,7 +647,7 @@ class SqlAst:
                     return self.get_table_name(value.args["from"])
 
         except Exception as e:
-            logger.error(f"Error in get_first_from: {e}")
+            print(f"Error in get_first_from: {e}")
         return None
 
     def find_all(self, expr_type, obj=None):
@@ -699,7 +680,7 @@ class SqlAst:
             cycles = list(nx.simple_cycles(G))
             return cycles
         except Exception as e:
-            logger.error(f"Error finding cycles: {e}")
+            print(f"Error finding cycles: {e}")
             return []
 
     def _get_input_id(self):
@@ -742,18 +723,18 @@ class DirectoryParser:
     ) -> List[Tuple[defaultdict, List[str], str]]:
         results = []
         if not os.path.exists(directory):
-            logger.error("Directory %s does not exist!", directory)
+            print(f"Error: Directory {directory} does not exist!")
             return results
         if not os.path.isdir(directory):
-            logger.error("%s is not a directory!", directory)
+            print(f"Error: {directory} is not a directory!")
             return results
-        logger.info("Processing files in directory: %s", directory)
+        print(f"Processing files in directory: {directory}")
         for root, _, files in os.walk(directory):
-            logger.debug("Processing directory: %s", root)
+            print(f"Processing directory: {root}")
             for file in files:
-                if file.endswith((".sql", ".ddl")):
+                if file.endswith((".sql", ".ddl")):  # Support both SQL and DDL files
                     file_path = os.path.join(root, file)
-                    logger.info("Reading file: %s", file_path)
+                    print(f"Reading file: {file_path}")
                     try:
                         with open(file_path, "r", encoding="utf-8") as f:
                             sql_code = f.read()
@@ -766,7 +747,7 @@ class DirectoryParser:
                                 )
                             )
                     except Exception as e:
-                        logger.error("Error processing file %s: %s", file_path, e)
+                        print(f"Error processing file {file_path}: {e}")
                         results.append(
                             (defaultdict(set), [f"Error: {str(e)}"], file_path)
                         )
