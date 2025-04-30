@@ -15,9 +15,9 @@ def process_args(args):
         sql_code = args.sql_code
         corrections = manager.process_sql(sql_code)
         if corrections:
-            logger.info("\nCorrections made:")  # Замена print на logger
+            logger.info("\nCorrections made:")
             for i, correction in enumerate(corrections, 1):
-                logger.info(f"{i}. {correction}")  # Замена print на logger
+                logger.info(f"{i}. {correction}")
         manager.visualize("Dependencies Graph")
         return
 
@@ -26,33 +26,23 @@ def process_args(args):
         if separate:
             parse_results = manager.parser.parse_directory(directory, sep_parse=True)
             for dependencies, corrections, file_path in parse_results:
-                logger.debug(f"\nFile: {file_path}")  # Замена print на logger.debug
+                logger.debug(f"\nFile: {file_path}")
                 if corrections:
-                    logger.info("Corrections made:")  # Замена print на logger
+                    logger.info("Corrections made:")
                     for i, correction in enumerate(corrections, 1):
-                        logger.info(f"{i}. {correction}")  # Замена print на logger
+                        logger.info(f"{i}. {correction}")
                 temp_storage = GraphStorage()
                 temp_storage.add_dependencies(dependencies)
-                try:
-                    manager.visualizer.render(
-                        temp_storage,
-                        f"Dependencies for {os.path.basename(file_path)}",
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Visualization error: {e}"
-                    )  # Замена print на logger.error
+                manager.visualizer.render(
+                    temp_storage,
+                    f"Dependencies for {os.path.basename(file_path)}",
+                )
         else:
             results = manager.process_directory(directory)
             for file_path, corrections in results:
-                logger.debug(f"\nFile: {file_path}")  # Замена print на logger.debug
+                logger.debug(f"\nFile: {file_path}")
                 if corrections:
-                    logger.info("Corrections made:")  # Замена print на logger
+                    logger.info("Corrections made:")
                     for i, correction in enumerate(corrections, 1):
-                        logger.info(f"{i}. {correction}")  # Замена print на logger
-            try:
-                manager.visualize("Full Dependencies Graph")
-            except Exception as e:
-                logger.error(
-                    f"Full visualization failed: {e}"
-                )  # Замена print на logger.error
+                        logger.info(f"{i}. {correction}")
+            manager.visualize("Full Dependencies Graph")

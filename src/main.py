@@ -85,7 +85,7 @@ def select_input_method() -> str:
 
 def main():
     # 1) выбор режима логирования
-    mode = select_logger_mode()  # normal, quiet или errors_only
+    mode = select_logger_mode()  # normal, quiet или errors_onlyё
     setup_logger(mode)
 
     # 2) выбор режима работы программы
