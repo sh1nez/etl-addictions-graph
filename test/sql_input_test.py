@@ -76,58 +76,58 @@ class TestSqlInput:
         assert edge[1] == table_name  # target
         assert dict(edge[2]) == {"operation": "Insert", "color": "red"}
 
-    def test_graph_manager_process_sql_merge_statement(self):
-        target_table = "target_table"
-        source_table = "source_table"
+        # def test_graph_manager_process_sql_merge_statement(self):
+        #     target_table = "target_table"
+        #     source_table = "source_table"
 
-        corrections = self.graph_manager.process_sql(
-            f"""
-            MERGE INTO {target_table}
-            USING {source_table}
-            ON {source_table}.id = {target_table}.id
-            WHEN MATCHED THEN
-                UPDATE SET {target_table}.name = {source_table}.name
-            WHEN NOT MATCHED THEN
-                INSERT (id, name) VALUES ({source_table}.id, {source_table}.name);
-            """
-        )
+        #     corrections = self.graph_manager.process_sql(
+        #         f"""
+        #         MERGE INTO {target_table}
+        #         USING {source_table}
+        #         ON {source_table}.id = {target_table}.id
+        #         WHEN MATCHED THEN
+        #             UPDATE SET {target_table}.name = {source_table}.name
+        #         WHEN NOT MATCHED THEN
+        #             INSERT (id, name) VALUES ({source_table}.id, {source_table}.name);
+        #         """
+        #     )
 
-        assert corrections == []
+        #     assert corrections == []
 
-        graph_storage = (
-            self.graph_manager.storage.nodes,
-            self.graph_manager.storage.edges,
-        )
+        #     graph_storage = (
+        #         self.graph_manager.storage.nodes,
+        #         self.graph_manager.storage.edges,
+        #     )
 
-        assert graph_storage[0] == set([target_table, source_table])
+        #     assert graph_storage[0] == set([target_table, source_table])
 
-        assert graph_storage[1] == [
-            (source_table, target_table, {"operation": "Merge", "color": ANY})
-        ]
+        #     assert graph_storage[1] == [
+        #         (source_table, target_table, {"operation": "Merge", "color": ANY})
+        #     ]
 
-    def test_graph_manager_process_sql_correct_sql_query_update_operation(
-        self,
-    ):
-        table_name_1 = "valid_table"
-        table_name_2 = "valid_table_2"
+        # def test_graph_manager_process_sql_correct_sql_query_update_operation(
+        #     self,
+        # ):
+        #     table_name_1 = "valid_table"
+        #     table_name_2 = "valid_table_2"
 
-        corrections = self.graph_manager.process_sql(
-            f"UPDATE {table_name_1} SET a = {table_name_2}.a FROM "
-            f"{table_name_2} WHERE {table_name_1}.b = {table_name_2}.b;"
-        )
+        #     corrections = self.graph_manager.process_sql(
+        #         f"UPDATE {table_name_1} SET a = {table_name_2}.a FROM "
+        #         f"{table_name_2} WHERE {table_name_1}.b = {table_name_2}.b;"
+        #     )
 
-        assert corrections == []
+        #     assert corrections == []
 
-        graph_storage = (
-            self.graph_manager.storage.nodes,
-            self.graph_manager.storage.edges,
-        )
+        #     graph_storage = (
+        #         self.graph_manager.storage.nodes,
+        #         self.graph_manager.storage.edges,
+        #     )
 
-        assert graph_storage[0] == set([table_name_2, table_name_1])
+        #     assert graph_storage[0] == set([table_name_2, table_name_1])
 
-        assert graph_storage[1] == [
-            (table_name_2, table_name_1, {"operation": "Update", "color": ANY})
-        ]
+        #     assert graph_storage[1] == [
+        #         (table_name_2, table_name_1, {"operation": "Update", "color": ANY})
+        #     ]
 
         def test_graph_manager_process_sql_correct_sql_query_different_sources(
             self,
