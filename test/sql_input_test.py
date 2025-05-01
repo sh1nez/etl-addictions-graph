@@ -326,3 +326,96 @@ class TestJoinInput:
         assert corrections
         assert self.graph_manager.storage.nodes == set()
         assert self.graph_manager.storage.edges == []
+
+
+class TestWindowFunctionInput:
+    @pytest.fixture(autouse=True)
+    def setup_manager(self):
+        self.graph_manager = GraphManager()
+
+    test_cases = [
+        SqlTestCase(
+            sql="SELECT id, ROW_NUMBER() OVER (PARTITION BY category ORDER BY id) AS rn FROM products;",
+            expected_nodes={"products"},
+            expected_edges={("products", "select")},
+            name="row_number_test",
+        ),
+        SqlTestCase(
+            sql="SELECT employee_id, salary, RANK() OVER (PARTITION BY department_id ORDER BY salary DESC, hire_date) AS rnk FROM employees;",
+            expected_nodes={"employees"},
+            expected_edges={("employees", "select")},
+            name="rank_test",
+        ),
+        SqlTestCase(
+            sql="SELECT customer_id, order_total, DENSE_RANK() OVER (ORDER BY order_total DESC) AS position FROM orders;",
+            expected_nodes={"orders"},
+            expected_edges={("orders", "select")},
+            name="dense_rank_test",
+        ),
+        SqlTestCase(
+            sql="SELECT id, amount, LAG(amount, 1, 0) OVER (ORDER BY date) AS prev_amount FROM transactions;",
+            expected_nodes={"transactions"},
+            expected_edges={("transactions", "select")},
+            name="lag_test",
+        ),
+        SqlTestCase(
+            sql="SELECT id, name, LEAD(name) OVER (PARTITION BY group_id ORDER BY id) AS next_person FROM people;",
+            expected_nodes={"people"},
+            expected_edges={("people", "select")},
+            name="lead_test",
+        ),
+        SqlTestCase(
+            sql="SELECT id, NTILE(4) OVER (ORDER BY score) AS quartile FROM test_scores;",
+            expected_nodes={"test_scores"},
+            expected_edges={("test_scores", "select")},
+            name="nitle_test",
+        ),
+        SqlTestCase(
+            sql="SELECT student_id, FIRST_VALUE(score) OVER (PARTITION BY subject ORDER BY date) AS first_score, "
+            "LAST_VALUE(score) OVER (PARTITION BY subject ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_score FROM exam_results;",
+            expected_nodes={"exam_results"},
+            expected_edges={("exam_results", "select")},
+            name="first_value_and_last_value_test",
+        ),
+        SqlTestCase(
+            sql="SELECT id, category, amount, SUM(amount) OVER (PARTITION BY "
+            "category ORDER BY id ROWS BETWEEN 1 PRECEDING AND CURRENT ROW) AS running_total FROM expenses;",
+            expected_nodes={"expenses"},
+            expected_edges={("expenses", "select")},
+            name="sum_test",
+        ),
+        SqlTestCase(
+            sql="SELECT country, COUNT(*) OVER () AS total_countries FROM countries;",
+            expected_nodes={"countries"},
+            expected_edges={("countries", "select")},
+            name="count_test",
+        ),
+        SqlTestCase(
+            sql="SELECT id, temperature, AVG(temperature) OVER (ORDER BY date "
+            "ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS avg_temp FROM weather_data;",
+            expected_nodes={"weather_data"},
+            expected_edges={("weather_data", "select")},
+            name="avg_test",
+        ),
+    ]
+
+    @pytest.mark.parametrize("case", test_cases, ids=[case.name for case in test_cases])
+    def test_window_functions(self, case: SqlTestCase):
+        self.graph_manager.storage = GraphManager().storage
+        corrections = self.graph_manager.process_sql(case.sql)
+
+        assert corrections == []
+
+        nodes = {
+            node.lower()
+            for node in self.graph_manager.storage.nodes
+            if "result " not in node
+        }
+        assert nodes == case.expected_nodes
+
+        edges = {
+            (src.lower(), data["operation"].lower())
+            for src, dst, data in self.graph_manager.storage.edges
+        }
+
+        assert edges == case.expected_edges
