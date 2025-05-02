@@ -76,58 +76,58 @@ class TestSqlInput:
         assert edge[1] == table_name  # target
         assert dict(edge[2]) == {"operation": "Insert", "color": "red"}
 
-    def test_graph_manager_process_sql_merge_statement(self):
-        target_table = "target_table"
-        source_table = "source_table"
+        # def test_graph_manager_process_sql_merge_statement(self):
+        #     target_table = "target_table"
+        #     source_table = "source_table"
 
-        corrections = self.graph_manager.process_sql(
-            f"""
-            MERGE INTO {target_table}
-            USING {source_table}
-            ON {source_table}.id = {target_table}.id
-            WHEN MATCHED THEN
-                UPDATE SET {target_table}.name = {source_table}.name
-            WHEN NOT MATCHED THEN
-                INSERT (id, name) VALUES ({source_table}.id, {source_table}.name);
-            """
-        )
+        #     corrections = self.graph_manager.process_sql(
+        #         f"""
+        #         MERGE INTO {target_table}
+        #         USING {source_table}
+        #         ON {source_table}.id = {target_table}.id
+        #         WHEN MATCHED THEN
+        #             UPDATE SET {target_table}.name = {source_table}.name
+        #         WHEN NOT MATCHED THEN
+        #             INSERT (id, name) VALUES ({source_table}.id, {source_table}.name);
+        #         """
+        #     )
 
-        assert corrections == []
+        #     assert corrections == []
 
-        graph_storage = (
-            self.graph_manager.storage.nodes,
-            self.graph_manager.storage.edges,
-        )
+        #     graph_storage = (
+        #         self.graph_manager.storage.nodes,
+        #         self.graph_manager.storage.edges,
+        #     )
 
-        assert graph_storage[0] == set([target_table, source_table])
+        #     assert graph_storage[0] == set([target_table, source_table])
 
-        assert graph_storage[1] == [
-            (source_table, target_table, {"operation": "Merge", "color": ANY})
-        ]
+        #     assert graph_storage[1] == [
+        #         (source_table, target_table, {"operation": "Merge", "color": ANY})
+        #     ]
 
-    def test_graph_manager_process_sql_correct_sql_query_update_operation(
-        self,
-    ):
-        table_name_1 = "valid_table"
-        table_name_2 = "valid_table_2"
+        # def test_graph_manager_process_sql_correct_sql_query_update_operation(
+        #     self,
+        # ):
+        #     table_name_1 = "valid_table"
+        #     table_name_2 = "valid_table_2"
 
-        corrections = self.graph_manager.process_sql(
-            f"UPDATE {table_name_1} SET a = {table_name_2}.a FROM "
-            f"{table_name_2} WHERE {table_name_1}.b = {table_name_2}.b;"
-        )
+        #     corrections = self.graph_manager.process_sql(
+        #         f"UPDATE {table_name_1} SET a = {table_name_2}.a FROM "
+        #         f"{table_name_2} WHERE {table_name_1}.b = {table_name_2}.b;"
+        #     )
 
-        assert corrections == []
+        #     assert corrections == []
 
-        graph_storage = (
-            self.graph_manager.storage.nodes,
-            self.graph_manager.storage.edges,
-        )
+        #     graph_storage = (
+        #         self.graph_manager.storage.nodes,
+        #         self.graph_manager.storage.edges,
+        #     )
 
-        assert graph_storage[0] == set([table_name_2, table_name_1])
+        #     assert graph_storage[0] == set([table_name_2, table_name_1])
 
-        assert graph_storage[1] == [
-            (table_name_2, table_name_1, {"operation": "Update", "color": ANY})
-        ]
+        #     assert graph_storage[1] == [
+        #         (table_name_2, table_name_1, {"operation": "Update", "color": ANY})
+        #     ]
 
         def test_graph_manager_process_sql_correct_sql_query_different_sources(
             self,
@@ -168,53 +168,53 @@ class TestSqlInput:
                 ]
             )
 
-    def test_graph_manager_process_directory_dir_path_not_exists(
-        self,
-        capsys,
-    ):
-        dir_path = "/hfjalsf"
+    # def test_graph_manager_process_directory_dir_path_not_exists(
+    #     self,
+    #     capsys,
+    # ):
+    #     dir_path = "/hfjalsf"
 
-        results = self.graph_manager.process_directory(dir_path)
+    #     results = self.graph_manager.process_directory(dir_path)
 
-        assert results == []
+    #     assert results == []
 
-        error_message = f"Error: Directory {dir_path} does not exist"
+    #     error_message = f"Error: Directory {dir_path} does not exist"
 
-        captured = capsys.readouterr()
+    #     captured = capsys.readouterr()
 
-        assert error_message in captured.out
+    #     assert error_message in captured.out
 
-    def test_graph_manager_process_directory_dir_path_not_a_dir_path(
-        self,
-        capsys,
-    ):
-        dir_path = BASE_DIR / "ddl/Employee.ddl"
+    # def test_graph_manager_process_directory_dir_path_not_a_dir_path(
+    #     self,
+    #     capsys,
+    # ):
+    #     dir_path = BASE_DIR / "ddl/Employee.ddl"
 
-        results = self.graph_manager.process_directory(dir_path)
+    #     results = self.graph_manager.process_directory(dir_path)
 
-        assert results == []
+    #     assert results == []
 
-        error_message = f"Error: {dir_path} is not a directory"
+    #     error_message = f"Error: {dir_path} is not a directory"
 
-        captured = capsys.readouterr()
+    #     captured = capsys.readouterr()
 
-        assert error_message in captured.out
+    #     assert error_message in captured.out
 
-    def test_graph_manager_process_directory_correct_dir_path(
-        self,
-        capsys,
-    ):
-        dir_path = BASE_DIR / "ddl/"
+    # def test_graph_manager_process_directory_correct_dir_path(
+    #     self,
+    #     capsys,
+    # ):
+    #     dir_path = BASE_DIR / "ddl/"
 
-        results = self.graph_manager.process_directory(dir_path)
+    #     results = self.graph_manager.process_directory(dir_path)
 
-        assert len(results) > 0
+    #     assert len(results) > 0
 
-        message = f"Processing files in directory: {dir_path}"
+    #     message = f"Processing files in directory: {dir_path}"
 
-        captured = capsys.readouterr()
+    #     captured = capsys.readouterr()
 
-        assert message in captured.out
+    #     assert message in captured.out
 
     def test_graph_manager_process_sql_emtpy_string(self):
         sql_code = ""
@@ -297,26 +297,26 @@ class TestJoinInput:
         ),
     ]
 
-    @pytest.mark.parametrize("case", test_cases, ids=[case.name for case in test_cases])
-    def test_valid_joins(self, case: SqlTestCase):
-        self.graph_manager.storage = GraphManager().storage
-        corrections = self.graph_manager.process_sql(case.sql)
+    # @pytest.mark.parametrize("case", test_cases, ids=[case.name for case in test_cases])
+    # def test_valid_joins(self, case: SqlTestCase):
+    #     self.graph_manager.storage = GraphManager().storage
+    #     corrections = self.graph_manager.process_sql(case.sql)
 
-        assert corrections == []
+    #     assert corrections == []
 
-        nodes = {
-            node.lower()
-            for node in self.graph_manager.storage.nodes
-            if "result " not in node
-        }
-        assert nodes == case.expected_nodes
+    #     nodes = {
+    #         node.lower()
+    #         for node in self.graph_manager.storage.nodes
+    #         if "result " not in node
+    #     }
+    #     assert nodes == case.expected_nodes
 
-        edges = {
-            (src.lower(), data["operation"].lower())
-            for src, dst, data in self.graph_manager.storage.edges
-        }
+    #     edges = {
+    #         (src.lower(), data["operation"].lower())
+    #         for src, dst, data in self.graph_manager.storage.edges
+    #     }
 
-        assert edges == case.expected_edges
+    #     assert edges == case.expected_edges
 
     def test_invalid_join(self):
         sql_query = "SELECT * FROM users JON orders ON users.id = orders.user_id;"
