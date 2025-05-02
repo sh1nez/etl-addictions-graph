@@ -285,8 +285,8 @@ class TestJoinInput:
         ),
         SqlTestCase(
             sql="SELECT * FROM users AS u LEFT JOIN payments p ON u.id = p.user_id;",
-            expected_nodes={"users (u)", "payments (p)"},
-            expected_edges={("users (u)", "select"), ("payments (p)", "join")},
+            expected_nodes={"users", "payments"},
+            expected_edges={("users", "select"), ("payments", "join")},
             name="alias_join_users_payments",
         ),
         SqlTestCase(
