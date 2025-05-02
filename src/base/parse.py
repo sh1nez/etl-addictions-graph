@@ -626,10 +626,6 @@ class SqlAst:
                     if hasattr(table_obj, "args") and "this" in table_obj.args:
                         table_name = table_obj.args["this"]
 
-                        # Check for alias
-                        if "alias" in parsed.args and parsed.args["alias"] is not None:
-                            alias = parsed.args["alias"].args["this"]
-                            return f"{table_name} ({alias})"
                         return table_name
 
             # Recursive search for table in attribute chain
@@ -639,10 +635,6 @@ class SqlAst:
                 counter += 1
                 if isinstance(current, Table):
                     table_name = current.args["this"].args["this"]
-                    # Check for alias
-                    if "alias" in current.args and current.args["alias"] is not None:
-                        alias = current.args["alias"].args["this"]
-                        return f"{table_name} ({alias})"
                     return table_name
                 current = current.args["this"]
 
