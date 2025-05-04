@@ -2,6 +2,7 @@ import networkx as nx
 from typing import Optional
 from matplotlib import pyplot as plt
 from base.storage import GraphStorage
+from logger_config import logger
 
 
 class GraphVisualizer:
@@ -9,51 +10,51 @@ class GraphVisualizer:
 
     def render(self, storage: GraphStorage, title: Optional[str] = None):
         if not storage.nodes:
-            print("Graph is empty, no dependencies to display.")
+            logger.warning("Graph is empty, no dependencies to display")
             return
-        G = nx.DiGraph()
+
+        G = nx.MultiDiGraph()
         G.add_nodes_from(storage.nodes)
-        G.add_edges_from(storage.edges)
+        G.add_edges_from(
+            (u, v, {"operation": data["operation"], "color": data["color"]})
+            for u, v, data in storage.edges
+        )
+
+        logger.debug(
+            f"Created graph with {len(storage.nodes)} nodes and {len(storage.edges)} edges"
+        )
+
         plt.figure(figsize=(12, 8))
-        try:
-            pos = nx.spring_layout(G, k=0.5, iterations=50)  # Улучшаем layout
+        pos = nx.spring_layout(G, k=0.5, iterations=50)
 
-            # Получаем цвета рёбер
-            edge_colors = [data["color"] for u, v, data in G.edges(data=True)]
+        edge_colors = [data["color"] for _, _, data in G.edges(data=True)]
+        edge_labels = {(u, v): data["operation"] for u, v, data in G.edges(data=True)}
+        edge_widths = [
+            data.get("width", 1.0) for _, _, data in G.edges(data=True)
+        ]  # We take the widths
 
-            # Подготовка меток для рёбер
-            edge_labels = {}
-            for u, v, data in G.edges(data=True):
-                # Берем только имя операции без деталей
-                label = data.get("operation", "")
-                edge_labels[(u, v)] = label
+        nx.draw(
+            G,
+            pos,
+            with_labels=True,
+            node_color="lightblue",
+            edge_color=edge_colors,
+            width=edge_widths,  # Use widths when rendering
+            font_size=10,
+            node_size=2000,
+            arrows=True,
+            arrowsize=15,
+            connectionstyle="arc3,rad=0.1",
+        )
 
-            edge_widths = (
-                [
-                    data.get("width", 1.0) for u, v, data in G.edges(data=True)
-                ],  # тут вроде всё норм, но тут долже брать свои данные и визуализировать, которые ты по всей цепочке парсинга уже передал
-            )
-            # Отрисовка графа
-            nx.draw(
-                G,
-                pos,
-                with_labels=True,
-                node_color="lightblue",
-                edge_color=edge_colors,
-                width=edge_widths,
-                font_size=10,
-                node_size=2000,
-                arrows=True,
-                arrowsize=15,
-            )
-            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=9)
+        nx.draw_networkx_edge_labels(
+            G, pos, edge_labels=edge_labels, font_size=9, label_pos=0.75
+        )
 
-            if title:
-                plt.title(title)
-            plt.tight_layout()
-            plt.show()
-        except Exception as e:
-            print(f"Error visualizing graph: {e}")
-            print(
-                "You may need to run this in an environment that supports matplotlib display."
-            )
+        if title:
+            plt.title(title)
+
+        plt.tight_layout()
+        logger.info(f"Rendering graph: {title or 'Untitled'}")
+        plt.show()
+        logger.debug("Graph displayed successfully")
