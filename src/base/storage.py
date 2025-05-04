@@ -60,6 +60,7 @@ class GraphStorage:
                     ] = "dashed"  # Use dashed line style for self-updates
 
                 elif isinstance(op, Join):
+
                     edge_data["operation"] = "Join"
                 elif isinstance(op, Table):
                     edge_data["operation"] = "Reference"
