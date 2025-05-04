@@ -71,6 +71,7 @@ class GraphStorage:
                     edge_data["label"] = "Recursive"
 
                 self.edges.append((edge.source, to_table, edge_data))
+
         logger.info(f"Added {len(dependencies)} dependencies")
 
     def clear(self):
@@ -93,3 +94,4 @@ class Edge:
         status = "internal" if self.is_internal_update else "normal"
         recursive_status = " (recursive)" if self.is_recursive else ""
         return f"Edge({self.source} -> {self.target}, {op_type}, {status}{recursive_status})"
+

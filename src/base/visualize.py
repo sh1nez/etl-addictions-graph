@@ -108,3 +108,4 @@ class GraphVisualizer:
 
         plt.close()
         logger.debug("Graph rendering completed")
+

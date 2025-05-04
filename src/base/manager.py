@@ -21,6 +21,7 @@ class GraphManager:
         ast = SqlAst(sql_code, sep_parse=True)
         self.storage.add_dependencies(ast.get_dependencies())
         logger.info(f"Processed SQL code: {len(ast.get_corrections())} corrections")
+
         return ast.get_corrections()
 
     def process_directory(self, directory_path: str) -> List[Tuple[str, List[str]]]:

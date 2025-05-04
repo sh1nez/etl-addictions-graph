@@ -323,6 +323,7 @@ class SqlAst:
         )
         main_query = (
             statement.args.get("this") if isinstance(statement, With) else statement
+            
         )
 
         # Process each CTE
@@ -380,6 +381,7 @@ class SqlAst:
 
                     # Return early since we've handled the UPDATE case without FROM
                     return
+
             # Process the main FROM table
             if "from" in statement.args and statement.args["from"] is not None:
                 from_table = self.get_table_name(statement.args["from"])
@@ -390,12 +392,14 @@ class SqlAst:
                     # For data modification operations (DML)
                     dependencies[to_table].add(Edge(from_table, to_table, statement))
 
+
             # Process MERGE operations
             if isinstance(statement, Merge):
                 # USING defines the source table
                 if "using" in statement.args and statement.args["using"]:
                     using_table = self.get_table_name(statement.args["using"])
                     dependencies[to_table].add(Edge(using_table, to_table, statement))
+
 
                 # Check merge conditions
                 if "on" in statement.args and statement.args["on"]:
@@ -406,13 +410,15 @@ class SqlAst:
                 # Check additional conditions
                 if "expressions" in statement.args:
                     for expr in statement.args["expressions"]:
-                        self._extract_table_dependencies(expr, to_table, dependencies)
+                        self._extract_table_dependencies(
+                            expr, to_table, dependencies)
 
             # Process JOINs in any queries
             if "joins" in statement.args and statement.args["joins"]:
                 for join_node in statement.args["joins"]:
                     if "this" in join_node.args:
-                        join_table = self.get_table_name(join_node.args["this"])
+                        join_table = self.get_table_name(
+                            join_node.args["this"])
 
                         # Create JOIN object for the graph
                         dependencies[to_table].add(
@@ -452,6 +458,7 @@ class SqlAst:
                 for expr in statement.args["expressions"]:
                     self._extract_table_dependencies(expr, to_table, dependencies)
 
+
         except Exception as e:
             print(f"Error processing statement tree: {e}")
 
@@ -467,6 +474,7 @@ class SqlAst:
                     if table_name in self.cte_definitions:
                         # Add dependency from CTE to current target
                         dependencies[to_table].add(Edge(table_name, to_table, node))
+
 
                         # If this is a recursive CTE and is referencing itself
                         if table_name in self.recursive_ctes and to_table == table_name:
@@ -507,6 +515,7 @@ class SqlAst:
                         # Regular table reference
                         dependencies[to_table].add(Edge(table_name, to_table, node))
 
+
         except Exception as e:
             print(f"Error extracting table dependencies: {e}")
 
@@ -523,7 +532,8 @@ class SqlAst:
             # Process the list of JOINs
             if "joins" in select_statement.args and select_statement.args["joins"]:
                 for join_node in select_statement.args["joins"]:
-                    joined_table = self.get_table_name(join_node.args.get("this"))
+                    joined_table = self.get_table_name(
+                        join_node.args.get("this"))
                     if base_table and joined_table:
                         # Create a relationship between tables
                         dependencies[base_table].add(
@@ -541,8 +551,10 @@ class SqlAst:
         try:
             for node in expr.walk():
                 if isinstance(node, Join):
-                    left_table = self._extract_table_name(node.args.get("this"))
-                    right_table = self._extract_table_name(node.args.get("expression"))
+                    left_table = self._extract_table_name(
+                        node.args.get("this"))
+                    right_table = self._extract_table_name(
+                        node.args.get("expression"))
 
                     if left_table and right_table:
                         # Create a relationship between tables
@@ -559,7 +571,8 @@ class SqlAst:
             right_expr = join_node.args.get("expression")
             if left_expr is None or right_expr is None:
                 print(
-                    f"Skipping JOIN due to missing expression: left_expr={left_expr}, right_expr={right_expr}"
+                    f"Skipping JOIN due to missing expression: left_expr={
+                        left_expr}, right_expr={right_expr}"
                 )
                 return
 
@@ -574,9 +587,11 @@ class SqlAst:
                 dependencies[left_table].add(Edge(right_table, left_table, join_node))
                 logger.debug("Added JOIN dependency: %s -> %s", right_table, left_table)
 
+
             else:
                 print(
-                    f"Could not extract both tables from JOIN: left={left_table}, right={right_table}"
+                    f"Could not extract both tables from JOIN: left={
+                        left_table}, right={right_table}"
                 )
         except Exception as e:
             print(f"Error processing JOIN: {e}")
