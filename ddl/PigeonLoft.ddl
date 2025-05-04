@@ -32,34 +32,39 @@ INSERT INTO PigeonLoft (loft_name, location, capacity, established_date) VALUES
 
 update PigeonLoft
 set manager_id = 1
-where capacity <= 50
+where capacity <= 50;
 
 update PigeonLoft
 set manager_id = 2
-where capacity <= 80 and capacity > 50
+where capacity <= 80 and capacity > 50;
 
 update PigeonLoft
 set manager_id = 3
-where manager_id is null
+where manager_id is null;
 
 UPDATE PigeonLoft
 SET location = CONCAT(UPPER(location), LOWER(location))
 WHERE manager_id = 1;
 
-delete PigeonLoft
-where established_date < '2005-09-23'
+DELETE FROM PigeonLoft
+WHERE established_date < DATE '2005-09-23';
 
 INSERT INTO PigeonLoft (loft_name, location, capacity, established_date)
-SELECT loft_name, UPPER(location), CAST(capacity AS INT), FORMAT(established_date, 'yyyy-MM-dd') FROM PigeonLoft
+SELECT
+    loft_name,
+    UPPER(location),
+    CAST(capacity AS INT),
+    TO_DATE(TO_CHAR(established_date, 'YYYY-MM-DD'), 'YYYY-MM-DD')
+FROM PigeonLoft
 WHERE manager_id = 1;
 
 UPDATE PigeonLoft
-SET established_date = DATEADD(YEAR, 1, established_date)
+SET established_date = established_date + INTERVAL '1 year'
 WHERE capacity > 60;
 
-delete PigeonLoft
-where location in ('Саратов, Россия', 'Тюмень, Россия')
+DELETE FROM PigeonLoft
+WHERE location IN ('Саратов, Россия', 'Тюмень, Россия');
 
 INSERT INTO PigeonLoft (loft_name, location, capacity, established_date)
 select loft_name, Upper(location), capacity, established_date	from PigeonLoft
-where capacity = 50
+where capacity = 50;
