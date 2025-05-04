@@ -11,6 +11,7 @@ from sqlglot.expressions import (
 )
 from typing import Union
 from sqlglot.expressions import Select, DML
+from logger_config import logger
 
 
 class BuffRead:
@@ -31,44 +32,64 @@ class GraphStorage:
         Merge: "yellow",
         Select: "purple",
         Join: "orange",
-        Table: "cyan",  # Для прямых ссылок на таблицы
-        BuffWrite: "green",  # Для прямых ссылок на таблицы
-        BuffRead: "blue",  # Для прямых ссылок на таблицы
+        Table: "cyan",
+        BuffWrite: "green",
+        BuffRead: "blue",
     }
 
     def __init__(self):
         self.nodes = set()
         self.edges = []
+        logger.debug("GraphStorage initialized")
 
     def add_dependencies(self, dependencies: defaultdict):
         for to_table, edges in dependencies.items():
             self.nodes.add(to_table)
             for edge in edges:
-                self.nodes.add(edge.from_table)
+                self.nodes.add(edge.source)
                 op = edge.op
                 op_name = type(op).__name__
                 op_color = self.COLORS.get(type(op), "gray")
 
-                # Создаем словарь с метаданными для ребра
                 edge_data = {"operation": op_name, "color": op_color}
 
-                # Упрощаем отображение для JOIN - всегда "Join"
-                if isinstance(op, Join):
-                    edge_data["operation"] = "Join"
+                if edge.is_internal_update:
+                    edge_data["operation"] = "InternalUpdate"
+                    edge_data[
+                        "style"
+                    ] = "dashed"  # Use dashed line style for self-updates
 
-                # Упрощаем отображение для прямых ссылок на таблицы
+                elif isinstance(op, Join):
+                    edge_data["operation"] = "Join"
                 elif isinstance(op, Table):
                     edge_data["operation"] = "Reference"
 
-                self.edges.append((edge.from_table, to_table, edge_data))
+                if edge.is_recursive:
+                    edge_data[
+                        "style"
+                    ] = "dotted"  # Use dotted line for recursive relationships
+                    edge_data["label"] = "Recursive"
+
+                self.edges.append((edge.source, to_table, edge_data))
+        logger.info(f"Added {len(dependencies)} dependencies")
 
     def clear(self):
         self.nodes.clear()
         self.edges.clear()
+        logger.debug("GraphStorage cleared")
 
 
 class Edge:
     def __init__(self, from_table: str, to_table: str, op: Union[DML, Select]):
         self.from_table = from_table
         self.to_table = to_table
-        self.op = op  # operation
+        self.op = op
+        self.is_internal_update = is_internal_update
+        self.is_recursive = False
+        logger.debug(f"Edge created: {from_table} -> {to_table}")
+
+    def __repr__(self):
+        op_type = type(self.op).__name__
+        status = "internal" if self.is_internal_update else "normal"
+        recursive_status = " (recursive)" if self.is_recursive else ""
+        return f"Edge({self.source} -> {self.target}, {op_type}, {status}{recursive_status})"

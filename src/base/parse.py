@@ -20,7 +20,8 @@ from sqlglot.expressions import (
     Expression,
 )
 from util.dialect import safe_parse
-from base.storage import Edge
+from .storage import Edge
+from util.logger_config import logger
 
 
 class SqlAst:
@@ -55,7 +56,8 @@ class SqlAst:
 
         # Track CTE definitions and references for recursion detection
         self.cte_definitions = {}  # name -> CTE node
-        self.cte_references = defaultdict(set)  # CTE name -> set of referencing CTEs
+        # CTE name -> set of referencing CTEs
+        self.cte_references = defaultdict(set)
         self.recursive_ctes = set()  # Set of recursive CTE names
 
         try:
@@ -69,6 +71,8 @@ class SqlAst:
             self.dependencies = self._extract_dependencies()
             # Check for recursive CTEs
             self._detect_recursive_ctes()
+            logger.info("SQL parsing and dependency extraction completed.")
+
         except Exception as e:
             print(f"Error parsing SQL: {e}")
             self.parsed = None
@@ -97,6 +101,7 @@ class SqlAst:
                             }
 
                 self.table_schema[table_name] = columns
+                logger.debug(f"Extracted schema for table %s: %s", table_name, columns)
 
     def _identify_all_ctes(self):
         """First pass to identify all CTEs in the SQL code."""
@@ -123,6 +128,8 @@ class SqlAst:
             if is_recursive:
                 # Mark all CTEs in this WITH clause as potentially recursive
                 self._mark_ctes_as_recursive(statement)
+
+                logger.debug("Marked CTEs in WITH RECURSIVE as recursive.")
 
     def _register_ctes_from_with(self, with_statement):
         """Register CTEs from a WITH clause."""
@@ -277,7 +284,6 @@ class SqlAst:
                         self._process_statement_tree(
                             statement.args["expression"], to_table, dependencies
                         )
-
                 # Process WITH clauses (Common Table Expressions)
                 if (
                     isinstance(statement, With)
@@ -286,6 +292,8 @@ class SqlAst:
                 ):
                     self._process_with_statement(statement, to_table, dependencies)
 
+                # Process the main statement and all subqueries
+                self._process_statement_tree(statement, to_table, dependencies)
                 # Process the main statement and all subqueries
                 self._process_statement_tree(statement, to_table, dependencies)
 
@@ -340,7 +348,38 @@ class SqlAst:
 
             # Handle references to CTEs
             self._handle_cte_references(statement, to_table, dependencies)
+            # Handle UPDATE statements without FROM clause
+            if isinstance(statement, Update):
+                # Get the table being updated (target table)
+                update_table = self.get_table_name(statement.args.get("this"))
 
+                # Add a self-loop dependency for UPDATE statements without FROM
+                # This indicates the table updates itself
+                if "from" not in statement.args or statement.args["from"] is None:
+                    # Create an "internal update" edge
+                    dependencies[to_table].add(
+                        Edge(update_table, to_table, statement, is_internal_update=True)
+                    )
+
+                    # Process SET expressions for potential dependencies
+                    if "set" in statement.args:
+                        for set_item in statement.args["set"]:
+                            if "expression" in set_item.args:
+                                self._extract_table_dependencies(
+                                    set_item.args["expression"], to_table, dependencies
+                                )
+
+                    # Process WHERE conditions for potential dependencies
+                    if (
+                        "where" in statement.args
+                        and statement.args["where"] is not None
+                    ):
+                        self._extract_table_dependencies(
+                            statement.args["where"], to_table, dependencies
+                        )
+
+                    # Return early since we've handled the UPDATE case without FROM
+                    return
             # Process the main FROM table
             if "from" in statement.args and statement.args["from"] is not None:
                 from_table = self.get_table_name(statement.args["from"])
@@ -439,7 +478,7 @@ class SqlAst:
                                 ):
                                     edge.is_recursive = True
         except Exception as e:
-            print(f"Error handling CTE references: {e}")
+            logger.error(f"Error handling CTE references: {e}")
 
     def _extract_table_dependencies(self, expression, to_table, dependencies):
         """Extract dependencies from tables in an expression."""
@@ -533,7 +572,8 @@ class SqlAst:
             # Add dependency: from right_table to left_table
             if left_table and right_table:
                 dependencies[left_table].add(Edge(right_table, left_table, join_node))
-                print(f"Added JOIN dependency: {right_table} -> {left_table}")
+                logger.debug("Added JOIN dependency: %s -> %s", right_table, left_table)
+
             else:
                 print(
                     f"Could not extract both tables from JOIN: left={left_table}, right={right_table}"
@@ -595,10 +635,6 @@ class SqlAst:
                     if hasattr(table_obj, "args") and "this" in table_obj.args:
                         table_name = table_obj.args["this"]
 
-                        # Check for alias
-                        if "alias" in parsed.args and parsed.args["alias"] is not None:
-                            alias = parsed.args["alias"].args["this"]
-                            return f"{table_name} ({alias})"
                         return table_name
 
             # Recursive search for table in attribute chain
@@ -608,10 +644,6 @@ class SqlAst:
                 counter += 1
                 if isinstance(current, Table):
                     table_name = current.args["this"].args["this"]
-                    # Check for alias
-                    if "alias" in current.args and current.args["alias"] is not None:
-                        alias = current.args["alias"].args["this"]
-                        return f"{table_name} ({alias})"
                     return table_name
                 current = current.args["this"]
 
@@ -680,7 +712,7 @@ class SqlAst:
             cycles = list(nx.simple_cycles(G))
             return cycles
         except Exception as e:
-            print(f"Error finding cycles: {e}")
+            logger.error(f"Error finding cycles: {e}")
             return []
 
     def _get_input_id(self):

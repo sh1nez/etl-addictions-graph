@@ -1,22 +1,23 @@
 import os
-
+from logging import Logger
+from typing import List, Tuple
 from base.manager import GraphManager
 from base.storage import GraphStorage
+from logger_config import logger  # Добавляем импорт логгера
 
 
 def process_args(args):
     """Processing command line arguments for table mode"""
     manager = GraphManager()
-
     separate = args.separate_graph.lower() == "true"
 
     if args.sql_code:
         sql_code = args.sql_code
         corrections = manager.process_sql(sql_code)
         if corrections:
-            print("\nCorrections made:")
+            logger.info("\nCorrections made:")
             for i, correction in enumerate(corrections, 1):
-                print(f"{i}. {correction}")
+                logger.info(f"{i}. {correction}")
         manager.visualize("Dependencies Graph")
         return
 
@@ -25,11 +26,11 @@ def process_args(args):
         if separate:
             parse_results = manager.parser.parse_directory(directory, sep_parse=True)
             for dependencies, corrections, file_path in parse_results:
-                print(f"\nFile: {file_path}")
+                logger.debug(f"\nFile: {file_path}")
                 if corrections:
-                    print("Corrections made:")
+                    logger.info("Corrections made:")
                     for i, correction in enumerate(corrections, 1):
-                        print(f"{i}. {correction}")
+                        logger.info(f"{i}. {correction}")
                 temp_storage = GraphStorage()
                 temp_storage.add_dependencies(dependencies)
                 manager.visualizer.render(
@@ -39,10 +40,9 @@ def process_args(args):
         else:
             results = manager.process_directory(directory)
             for file_path, corrections in results:
-                print(f"\nFile: {file_path}")
+                logger.debug(f"\nFile: {file_path}")
                 if corrections:
-                    print("Corrections made:")
+                    logger.info("Corrections made:")
                     for i, correction in enumerate(corrections, 1):
-                        print(f"{i}. {correction}")
+                        logger.info(f"{i}. {correction}")
             manager.visualize("Full Dependencies Graph")
-            return
