@@ -55,9 +55,9 @@ class GraphStorage:
 
                 if edge.is_internal_update:
                     edge_data["operation"] = "InternalUpdate"
-                    edge_data[
-                        "style"
-                    ] = "dashed"  # Use dashed line style for self-updates
+                    edge_data["style"] = (
+                        "dashed"  # Use dashed line style for self-updates
+                    )
 
                 elif isinstance(op, Join):
                     edge_data["operation"] = "Join"
@@ -65,9 +65,9 @@ class GraphStorage:
                     edge_data["operation"] = "Reference"
 
                 if edge.is_recursive:
-                    edge_data[
-                        "style"
-                    ] = "dotted"  # Use dotted line for recursive relationships
+                    edge_data["style"] = (
+                        "dotted"  # Use dotted line for recursive relationships
+                    )
                     edge_data["label"] = "Recursive"
 
                 self.edges.append((edge.source, to_table, edge_data))
