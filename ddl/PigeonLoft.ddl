@@ -50,10 +50,10 @@ DELETE FROM PigeonLoft
 WHERE established_date < DATE '2005-09-23';
 
 INSERT INTO PigeonLoft (loft_name, location, capacity, established_date)
-SELECT 
-    loft_name, 
-    UPPER(location), 
-    CAST(capacity AS INT), 
+SELECT
+    loft_name,
+    UPPER(location),
+    CAST(capacity AS INT),
     TO_DATE(TO_CHAR(established_date, 'YYYY-MM-DD'), 'YYYY-MM-DD')
 FROM PigeonLoft
 WHERE manager_id = 1;

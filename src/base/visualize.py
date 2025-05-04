@@ -29,6 +29,9 @@ class GraphVisualizer:
 
         edge_colors = [data["color"] for _, _, data in G.edges(data=True)]
         edge_labels = {(u, v): data["operation"] for u, v, data in G.edges(data=True)}
+        edge_widths = [
+            data.get("width", 1.0) for _, _, data in G.edges(data=True)
+        ]  # We take the widths
 
         nx.draw(
             G,
@@ -36,6 +39,7 @@ class GraphVisualizer:
             with_labels=True,
             node_color="lightblue",
             edge_color=edge_colors,
+            width=edge_widths,  # Use widths when rendering
             font_size=10,
             node_size=2000,
             arrows=True,
