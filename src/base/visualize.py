@@ -11,100 +11,95 @@ class GraphVisualizer:
     def __init__(self):
         logger.debug("GraphVisualizer initialized")
 
-    def render(self, storage: GraphStorage, title=None, output_path=None):
+    def render(
+        self, storage: GraphStorage, title: Optional[str] = None, output_path=None
+    ):
         """Render the graph using NetworkX and Matplotlib."""
-        G = nx.DiGraph()
+        if not storage.nodes:
+            logger.warning("Graph is empty, no dependencies to display")
+            return
+        G = nx.MultiDiGraph()
+        G.add_nodes_from(storage.nodes)
+        G.add_edges_from(storage.edges)
 
-        # Add all nodes first
-        for node in storage.nodes:
-            G.add_node(node)
-
-        # Add edges with attributes
-        for source, target, attrs in storage.edges:
-            G.add_edge(source, target, **attrs)
-
-        # Create the figure and draw
         plt.figure(figsize=(14, 10))
+        try:
+            pos = nx.spring_layout(G, k=0.15, iterations=50)
 
-        # Create layout (hierarchical works well for SQL dependency graphs)
-        pos = nx.spring_layout(G, k=0.15, iterations=20)
+            # debug multi digraph
+            # logger.debug({(u, v, k): d for u, v, k, d in G.edges(keys=True,data=True)})
 
-        # Draw nodes
-        nx.draw_networkx_nodes(G, pos, node_size=700, node_color="skyblue", alpha=0.8)
+            # debug self-loops
+            # self_loops = {
+            #     (u, v, k): d
+            #     for (u, v, k), d in G.edges(keys=True,data=True)
+            #     if u == v
+            # }
+            # logger.debug(self_loops)
 
-        # Draw node labels
-        nx.draw_networkx_labels(G, pos, font_size=10)
+            # Получаем цвета рёбер
+            edge_colors = [
+                data["color"] for u, v, k, data in G.edges(keys=True, data=True)
+            ]
 
-        # Draw edges with different styles based on attributes
-        edge_normal = [
-            (u, v)
-            for u, v, d in G.edges(data=True)
-            if "style" not in d or d["style"] == "solid"
-        ]
-        edge_dashed = [
-            (u, v)
-            for u, v, d in G.edges(data=True)
-            if "style" in d and d["style"] == "dashed"
-        ]
-        edge_dotted = [
-            (u, v)
-            for u, v, d in G.edges(data=True)
-            if "style" in d and d["style"] == "dotted"
-        ]
+            # Получаем стиль рёбер, иначе solid по умолчанию
+            edge_style = [
+                data.get("style", "solid")
+                for u, v, k, data in G.edges(keys=True, data=True)
+            ]
 
-        # Normal edges
-        nx.draw_networkx_edges(
-            G,
-            pos,
-            edgelist=edge_normal,
-            width=1.5,
-            alpha=0.7,
-            arrows=True,
-            arrowstyle="->",
-            arrowsize=15,
-        )
+            # насколько одна связь отдаляется от другой
+            step = 0.2
+            # максимальное количество отображаемых связей между двумя нодами
+            multi_edge_lim = 10
+            connectionstyle = [
+                f"arc3,rad={(-1)**(i+1)*((i+1)//2*step)}" for i in range(multi_edge_lim)
+            ]
 
-        # Dashed edges (internal updates)
-        nx.draw_networkx_edges(
-            G,
-            pos,
-            edgelist=edge_dashed,
-            width=1.5,
-            alpha=0.7,
-            arrows=True,
-            style="dashed",
-            arrowstyle="->",
-            arrowsize=15,
-        )
+            # Отрисовка графа
+            nx.draw(
+                G,
+                pos,
+                with_labels=True,
+                node_color="lightblue",
+                edge_color=edge_colors,
+                font_size=10,
+                node_size=2000,
+                arrows=True,
+                arrowstyle="->",
+                arrowsize=15,
+                connectionstyle=connectionstyle,
+                style=edge_style,
+            )
 
-        # Dotted edges (recursive)
-        nx.draw_networkx_edges(
-            G,
-            pos,
-            edgelist=edge_dotted,
-            width=1.5,
-            alpha=0.7,
-            arrows=True,
-            style="dotted",
-            arrowstyle="->",
-            arrowsize=15,
-        )
+            # Draw edge labels (operations)
+            edge_labels = {
+                (u, v, k): d["operation"]
+                for u, v, k, d in G.edges(keys=True, data=True)
+            }
+            nx.draw_networkx_edge_labels(
+                G,
+                pos,
+                edge_labels=edge_labels,
+                font_size=8,
+                connectionstyle=connectionstyle,
+            )
 
-        # Draw edge labels (operations)
-        edge_labels = {(u, v): d["operation"] for u, v, d in G.edges(data=True)}
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+            # Set title
+            plt.title(title or "SQL Dependency Graph")
+            plt.axis("off")
 
-        # Set title
-        plt.title(title or "SQL Dependency Graph")
-        plt.axis("off")
+            # Save or show
+            if output_path:
+                plt.savefig(output_path, format="png", dpi=300, bbox_inches="tight")
+                logger.info(f"Graph saved to {output_path}")
+            else:
+                plt.tight_layout()
+                plt.show()
 
-        # Save or show
-        if output_path:
-            plt.savefig(output_path, format="png", dpi=300, bbox_inches="tight")
-            logger.info(f"Graph saved to {output_path}")
-        else:
-            plt.tight_layout()
-            plt.show()
-
-        plt.close()
-        logger.debug("Graph rendering completed")
+            plt.close()
+            logger.debug("Graph rendering completed")
+        except Exception as e:
+            logger.error(
+                f"Error visualizing graph: {e}\nYou may need to run this in an environment that supports matplotlib display."
+            )

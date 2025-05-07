@@ -68,7 +68,7 @@ class GraphStorage:
                     edge_data["style"] = (
                         "dotted"  # Use dotted line for recursive relationships
                     )
-                    edge_data["label"] = "Recursive"
+                    edge_data["operation"] = "Recursive"
 
                 self.edges.append((edge.source, to_table, edge_data))
         logger.info(f"Added {len(dependencies)} dependencies")
