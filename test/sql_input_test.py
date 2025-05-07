@@ -279,8 +279,12 @@ class TestJoinInput:
                     JOIN table2 t2 ON t1.id = t2.t1_id
                   ) AS subquery
                   JOIN table3 ON subquery.id = table3.sub_id;""",
-            expected_nodes={"table3", "unknown 2"},
-            expected_edges={("table3", "join"), ("unknown 2", "select")},
+            expected_nodes={"table3", "unknown 0", "unknown 1"},
+            expected_edges={
+                ("table3", "join"),
+                ("unknown 0", "select"),
+                ("unknown 1", "select"),
+            },
             name="nested_join_table1_table2_table3",
         ),
         SqlTestCase(
@@ -297,26 +301,26 @@ class TestJoinInput:
         ),
     ]
 
-    # @pytest.mark.parametrize("case", test_cases, ids=[case.name for case in test_cases])
-    # def test_valid_joins(self, case: SqlTestCase):
-    #     self.graph_manager.storage = GraphManager().storage
-    #     corrections = self.graph_manager.process_sql(case.sql)
+    @pytest.mark.parametrize("case", test_cases, ids=[case.name for case in test_cases])
+    def test_valid_joins(self, case: SqlTestCase):
+        self.graph_manager.storage = GraphManager().storage
+        corrections = self.graph_manager.process_sql(case.sql)
 
-    #     assert corrections == []
+        assert corrections == []
 
-    #     nodes = {
-    #         node.lower()
-    #         for node in self.graph_manager.storage.nodes
-    #         if "result " not in node
-    #     }
-    #     assert nodes == case.expected_nodes
+        nodes = {
+            node.lower()
+            for node in self.graph_manager.storage.nodes
+            if "result " not in node
+        }
+        assert nodes == case.expected_nodes
 
-    #     edges = {
-    #         (src.lower(), data["operation"].lower())
-    #         for src, dst, data in self.graph_manager.storage.edges
-    #     }
+        edges = {
+            (src.lower(), data["operation"].lower())
+            for src, dst, data in self.graph_manager.storage.edges
+        }
 
-    #     assert edges == case.expected_edges
+        assert edges == case.expected_edges
 
     def test_invalid_join(self):
         sql_query = "SELECT * FROM users JON orders ON users.id = orders.user_id;"
