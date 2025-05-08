@@ -8,7 +8,7 @@ from logger_config import logger  # Добавляем импорт логгер
 
 def process_args(args):
     """Processing command line arguments for table mode"""
-    manager = GraphManager()
+    manager = GraphManager(operators=args.operators)
     separate = args.separate_graph.lower() == "true"
 
     if args.sql_code:

@@ -6,7 +6,7 @@ from logger_config import logger
 
 def process_args(args):
     """Processing command line arguments for field mode"""
-    manager = GraphManager(column_mode=True)
+    manager = GraphManager(column_mode=True, operators=args.operators)
     separate = args.separate_graph.lower() == "true"
     if args.sql_code:
         sql_code = args.sql_code
