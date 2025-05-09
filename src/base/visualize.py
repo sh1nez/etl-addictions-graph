@@ -15,6 +15,7 @@ class GraphVisualizer:
         self, storage: GraphStorage, title: Optional[str] = None, output_path=None
     ):
         """Render the graph using NetworkX and Matplotlib."""
+        storage.nodes, storage.edges = storage.get_filtered_nodes_edges()
         if not storage.nodes:
             logger.warning("Graph is empty, no dependencies to display")
             return
