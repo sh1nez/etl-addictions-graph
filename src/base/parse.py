@@ -339,17 +339,19 @@ class SqlAst:
                             cte_edge = Edge(cte_name, to_table, main_query)
                             dependencies[to_table].add(cte_edge)
 
-    def _process_statement_tree(self, initial_statement, initial_to_table, dependencies):
+    def _process_statement_tree(
+        self, initial_statement, initial_to_table, dependencies
+    ):
         """Итеративно обрабатывает запрос и его подзапросы для извлечения зависимостей."""
         try:
             # Инициализируем стек задач с начальным запросом
             stack = [(initial_statement, initial_to_table)]
-            
+
             # Пока в стеке есть задачи, обрабатываем их
             while stack:
                 # Извлекаем текущую задачу из стека
                 statement, to_table = stack.pop()
-                
+
                 # Пропускаем, если запрос пустой
                 if statement is None:
                     continue
