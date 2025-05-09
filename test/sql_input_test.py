@@ -1,6 +1,6 @@
 from unittest.mock import ANY
 from dataclasses import dataclass
-from typing import Set, Tuple
+from typing import Optional, Set, Tuple
 
 import pytest
 
@@ -37,6 +37,7 @@ class TestSqlInput:
         graph_storage = (
             self.graph_manager.storage.nodes,
             self.graph_manager.storage.edges,
+            self.graph_manager.storage.operator_filter,
         )
 
         assert graph_storage[0] == set()
@@ -57,6 +58,7 @@ class TestSqlInput:
         graph_storage = (
             self.graph_manager.storage.nodes,
             self.graph_manager.storage.edges,
+            self.graph_manager.storage.operator_filter,
         )
 
         assert graph_storage[0] == {"input 0", table_name}
@@ -149,6 +151,7 @@ class TestSqlInput:
             graph_storage = (
                 self.graph_manager.storage.nodes,
                 self.graph_manager.storage.edges,
+                self.graph_manager.storage.operator_filter,
             )
 
             assert graph_storage[0] == set(["input 0", "input 1", table_name_1])
@@ -245,6 +248,7 @@ class SqlTestCase:
     expected_nodes: Set[str]
     expected_edges: Set[Tuple[str, str]]
     name: str
+    expected_operator_filter: Optional[str] = None
 
 
 class TestJoinInput:

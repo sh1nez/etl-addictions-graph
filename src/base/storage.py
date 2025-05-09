@@ -12,7 +12,7 @@ from sqlglot.expressions import (
     Alter,
     Drop,
 )
-from typing import Union, Optional
+from typing import Union, Optional, Type
 from sqlglot.expressions import Select, DML
 from logger_config import logger
 
@@ -56,6 +56,7 @@ class GraphStorage:
     def __init__(self):
         self.nodes = set()
         self.edges = []
+        self.operator_filter = None
         logger.debug("GraphStorage initialized")
 
     def set_operator_filter(self, operators: Optional[str] = None):
@@ -88,7 +89,8 @@ class GraphStorage:
             self.nodes.add(to_table)
             for edge in edges:
                 if (
-                    self.operator_filter is not None
+                    hasattr(self, "operator_filter")  # Check if attribute exists
+                    and self.operator_filter is not None
                     and type(edge.op) not in self.operator_filter
                 ):
                     logger.debug(f"Skipping edge {edge} due to operator filter")
