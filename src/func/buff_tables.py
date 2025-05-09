@@ -94,11 +94,11 @@ class BufferTable:
                     buff_tables[to_table] = BufferTable(to_table)
 
                 for edge in edges:
-                    if edge.from_table not in buff_tables:
-                        buff_tables[edge.from_table] = BufferTable(edge.from_table)
+                    if edge.source not in buff_tables:
+                        buff_tables[edge.source] = BufferTable(edge.source)
 
                     buff_tables[to_table].write_procedures.add(proc)
-                    buff_tables[edge.from_table].read_procedures.add(proc)
+                    buff_tables[edge.source].read_procedures.add(proc)
 
         real_buff_tables = set()
         for _, table in buff_tables.items():
