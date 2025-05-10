@@ -270,6 +270,36 @@ class SqlAst:
                 # For regular SELECT statements without an explicit target
                 else:
                     to_table = f"result {self._get_output_id()}"
+                if isinstance(statement, Delete):
+                    # Process the table being deleted from
+                    if "this" in statement.args and statement.args["this"] is not None:
+                        from_table = self.get_table_name(statement.args["this"])
+                        # Add dependency from the source table to the target
+                        dependencies[to_table].add(
+                            Edge(from_table, to_table, statement)
+                        )
+
+                    # Process WHERE conditions in DELETE statements
+                    if (
+                        "where" in statement.args
+                        and statement.args["where"] is not None
+                    ):
+                        self._extract_table_dependencies(
+                            statement.args["where"], to_table, dependencies
+                        )
+
+                    # Check for USING clause in DELETE (some dialects support this)
+                    if (
+                        "using" in statement.args
+                        and statement.args["using"] is not None
+                    ):
+                        using_tables = self._extract_using_tables(
+                            statement.args["using"]
+                        )
+                        for using_table in using_tables:
+                            dependencies[to_table].add(
+                                Edge(using_table, to_table, statement)
+                            )
 
                 # Handle INSERT statements specifically
                 if isinstance(statement, Insert):
