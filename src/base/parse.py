@@ -346,80 +346,193 @@ class SqlAst:
             if statement is None:
                 return
 
-            # Handle references to CTEs
-            self._handle_cte_references(statement, to_table, dependencies)
+            # Множество для отслеживания обработанных подзапросов
+            processed_subqueries = set()
 
-            # Process the main FROM table
-            if "from" in statement.args and statement.args["from"] is not None:
-                from_table = self.get_table_name(statement.args["from"])
-                # Add dependency from main table to result
-                if isinstance(statement, Select):
-                    dependencies[to_table].add(Edge(from_table, to_table, statement))
-                else:
-                    # For data modification operations (DML)
-                    dependencies[to_table].add(Edge(from_table, to_table, statement))
+            def process_recursive(current_statement, current_to_table):
+                # Пропускаем, если запрос пустой или уже обработан
+                if (
+                    current_statement is None
+                    or id(current_statement) in processed_subqueries
+                ):
+                    return
+                processed_subqueries.add(id(current_statement))
 
-            # Process MERGE operations
-            if isinstance(statement, Merge):
-                # USING defines the source table
-                if "using" in statement.args and statement.args["using"]:
-                    using_table = self.get_table_name(statement.args["using"])
-                    dependencies[to_table].add(Edge(using_table, to_table, statement))
-
-                # Check merge conditions
-                if "on" in statement.args and statement.args["on"]:
-                    self._extract_table_dependencies(
-                        statement.args["on"], to_table, dependencies
-                    )
-
-                # Check additional conditions
-                if "expressions" in statement.args:
-                    for expr in statement.args["expressions"]:
-                        self._extract_table_dependencies(expr, to_table, dependencies)
-
-            # Process JOINs in any queries
-            if "joins" in statement.args and statement.args["joins"]:
-                for join_node in statement.args["joins"]:
-                    if "this" in join_node.args:
-                        join_table = self.get_table_name(join_node.args["this"])
-
-                        # Create JOIN object for the graph
-                        dependencies[to_table].add(
-                            Edge(join_table, to_table, join_node)
-                        )
-
-                        # Also check for conditions in the JOIN that might reference other tables
-                        if "on" in join_node.args and join_node.args["on"]:
-                            self._extract_table_dependencies(
-                                join_node.args["on"], to_table, dependencies
-                            )
-
-            # Process expressions in UPDATE and INSERT queries
-            if isinstance(statement, Update) and "set" in statement.args:
-                # In UPDATE there may be hidden dependencies in SET expressions
-                for set_item in statement.args["set"]:
-                    if "expression" in set_item.args:
-                        self._extract_table_dependencies(
-                            set_item.args["expression"], to_table, dependencies
-                        )
-
-            # Process WHERE conditions, which may contain subqueries
-            if "where" in statement.args and statement.args["where"] is not None:
-                self._extract_table_dependencies(
-                    statement.args["where"], to_table, dependencies
+                # Обрабатываем ссылки на CTE (Common Table Expressions)
+                self._handle_cte_references(
+                    current_statement, current_to_table, dependencies
                 )
 
-            # Process GROUP BY, HAVING, and ORDER BY clauses which may contain subqueries
-            for clause_type in ["group", "having", "order"]:
-                if clause_type in statement.args and statement.args[clause_type]:
+                # Обрабатываем основную таблицу в FROM или саму таблицу для DML
+                if isinstance(current_statement, Update):
+                    # Для UPDATE используем саму таблицу как источник
+                    if (
+                        "this" in current_statement.args
+                        and current_statement.args["this"] is not None
+                    ):
+                        from_table = self.get_table_name(current_statement.args["this"])
+                        # Проверяем, есть ли уже зависимость между from_table и to_table
+                        existing_edge = next(
+                            (
+                                edge
+                                for edge in dependencies[current_to_table]
+                                if edge.from_table == from_table
+                            ),
+                            None,
+                        )
+                        if existing_edge:
+                            # Если зависимость уже существует, обновляем operation, если текущая операция более приоритетная
+                            if existing_edge.op.__class__.__name__ in (
+                                "Table",
+                                "Reference",
+                            ):
+                                dependencies[current_to_table].remove(existing_edge)
+                                dependencies[current_to_table].add(
+                                    Edge(
+                                        from_table, current_to_table, current_statement
+                                    )
+                                )
+                        else:
+                            dependencies[current_to_table].add(
+                                Edge(from_table, current_to_table, current_statement)
+                            )
+                elif (
+                    "from" in current_statement.args
+                    and current_statement.args["from"] is not None
+                ):
+                    from_table = self.get_table_name(current_statement.args["from"])
+                    # Проверяем, есть ли уже зависимость
+                    existing_edge = next(
+                        (
+                            edge
+                            for edge in dependencies[current_to_table]
+                            if edge.from_table == from_table
+                        ),
+                        None,
+                    )
+                    if existing_edge:
+                        # Если зависимость уже существует, пропускаем добавление, чтобы избежать дублирования
+                        return
+                    if isinstance(current_statement, Select):
+                        dependencies[current_to_table].add(
+                            Edge(from_table, current_to_table, current_statement)
+                        )
+                    else:
+                        dependencies[current_to_table].add(
+                            Edge(from_table, current_to_table, current_statement)
+                        )
+
+                # Обрабатываем операции MERGE
+                if isinstance(current_statement, Merge):
+                    if (
+                        "using" in current_statement.args
+                        and current_statement.args["using"]
+                    ):
+                        using_table = self.get_table_name(
+                            current_statement.args["using"]
+                        )
+                        existing_edge = next(
+                            (
+                                edge
+                                for edge in dependencies[current_to_table]
+                                if edge.from_table == using_table
+                            ),
+                            None,
+                        )
+                        if not existing_edge:
+                            dependencies[current_to_table].add(
+                                Edge(using_table, current_to_table, current_statement)
+                            )
+                    if "on" in current_statement.args and current_statement.args["on"]:
+                        self._extract_table_dependencies(
+                            current_statement.args["on"], current_to_table, dependencies
+                        )
+                    if "expressions" in current_statement.args:
+                        for expr in current_statement.args["expressions"]:
+                            self._extract_table_dependencies(
+                                expr, current_to_table, dependencies
+                            )
+
+                # Обрабатываем JOIN'ы
+                if (
+                    "joins" in current_statement.args
+                    and current_statement.args["joins"]
+                ):
+                    for join_node in current_statement.args["joins"]:
+                        if "this" in join_node.args:
+                            join_table = self.get_table_name(join_node.args["this"])
+                            existing_edge = next(
+                                (
+                                    edge
+                                    for edge in dependencies[current_to_table]
+                                    if edge.from_table == join_table
+                                ),
+                                None,
+                            )
+                            if existing_edge:
+                                continue
+                            dependencies[current_to_table].add(
+                                Edge(join_table, current_to_table, join_node)
+                            )
+                            if "on" in join_node.args and join_node.args["on"]:
+                                self._extract_table_dependencies(
+                                    join_node.args["on"], current_to_table, dependencies
+                                )
+
+                # Обрабатываем выражения в UPDATE
+                if (
+                    isinstance(current_statement, Update)
+                    and "set" in current_statement.args
+                ):
+                    for set_item in current_statement.args["set"]:
+                        if "expression" in set_item.args:
+                            self._extract_table_dependencies(
+                                set_item.args["expression"],
+                                current_to_table,
+                                dependencies,
+                            )
+
+                # Обрабатываем WHERE
+                if (
+                    "where" in current_statement.args
+                    and current_statement.args["where"] is not None
+                ):
                     self._extract_table_dependencies(
-                        statement.args[clause_type], to_table, dependencies
+                        current_statement.args["where"], current_to_table, dependencies
                     )
 
-            # Process SELECT list items for subqueries
-            if "expressions" in statement.args and isinstance(statement, Select):
-                for expr in statement.args["expressions"]:
-                    self._extract_table_dependencies(expr, to_table, dependencies)
+                # Обрабатываем GROUP BY, HAVING и ORDER BY
+                for clause_type in ["group", "having", "order"]:
+                    if (
+                        clause_type in current_statement.args
+                        and current_statement.args[clause_type]
+                    ):
+                        self._extract_table_dependencies(
+                            current_statement.args[clause_type],
+                            current_to_table,
+                            dependencies,
+                        )
+
+                # Обрабатываем список выражений в SELECT
+                if "expressions" in current_statement.args and isinstance(
+                    current_statement, Select
+                ):
+                    for expr in current_statement.args["expressions"]:
+                        self._extract_table_dependencies(
+                            expr, current_to_table, dependencies
+                        )
+
+                # Рекурсивно обрабатываем подзапросы
+                for key, value in current_statement.args.items():
+                    if isinstance(value, (Select, Subquery, Update)):
+                        process_recursive(value, current_to_table)
+                    elif isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, (Select, Subquery, Update)):
+                                process_recursive(item, current_to_table)
+
+            # Запускаем рекурсивную обработку
+            process_recursive(statement, to_table)
 
         except Exception as e:
             print(f"Error processing statement tree: {e}")

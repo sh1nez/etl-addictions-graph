@@ -88,38 +88,50 @@ class GraphStorage:
         for to_table, edges in dependencies.items():
             self.nodes.add(to_table)
             for edge in edges:
-                if (
-                    hasattr(self, "operator_filter")  # Check if attribute exists
-                    and self.operator_filter is not None
-                    and type(edge.op) not in self.operator_filter
-                ):
-                    logger.debug(f"Skipping edge {edge} due to operator filter")
-                    continue
-                self.nodes.add(edge.source)
+                self.nodes.add(edge.from_table)
                 op = edge.op
                 op_name = type(op).__name__
                 op_color = self.COLORS.get(type(op), "gray")
 
                 edge_data = {"operation": op_name, "color": op_color}
 
-                if edge.is_internal_update:
-                    edge_data["operation"] = "InternalUpdate"
-                    edge_data["style"] = (
-                        "dashed"  # Use dashed line style for self-updates
-                    )
-
-                elif isinstance(op, Join):
+                # Специальная обработка для JOIN и Table
+                if isinstance(op, Join):
                     edge_data["operation"] = "Join"
                 elif isinstance(op, Table):
                     edge_data["operation"] = "Reference"
+                # Приоритизация DML операций (например, Update)
+                elif isinstance(op, Update):
+                    edge_data["operation"] = "Update"
 
-                if edge.is_recursive:
-                    edge_data["style"] = (
-                        "dotted"  # Use dotted line for recursive relationships
-                    )
-                    edge_data["operation"] = "Recursive"
-
-                self.edges.append((edge.source, to_table, edge_data))
+                # Проверяем, существует ли уже ребро между from_table и to_table
+                existing_edge = next(
+                    (
+                        (u, v, d)
+                        for u, v, d in self.edges
+                        if u == edge.from_table and v == to_table
+                    ),
+                    None,
+                )
+                if existing_edge:
+                    # Если ребро уже существует, обновляем его, только если новая операция более приоритетная
+                    existing_op = existing_edge[2]["operation"]
+                    priority = {
+                        "Update": 3,
+                        "Insert": 3,
+                        "Delete": 3,
+                        "Merge": 3,
+                        "Select": 2,
+                        "Join": 1,
+                        "Reference": 0,
+                    }
+                    if priority.get(edge_data["operation"], 0) > priority.get(
+                        existing_op, 0
+                    ):
+                        self.edges.remove(existing_edge)
+                        self.edges.append((edge.from_table, to_table, edge_data))
+                else:
+                    self.edges.append((edge.from_table, to_table, edge_data))
         logger.info(f"Added {len(dependencies)} dependencies")
 
     def clear(self):
