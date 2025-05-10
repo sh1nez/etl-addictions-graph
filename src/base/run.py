@@ -3,7 +3,7 @@ from logging import Logger
 from typing import List, Tuple
 from base.manager import GraphManager
 from base.storage import GraphStorage
-from logger_config import logger  # Добавляем импорт логгера
+from logger_config import logger
 
 
 def process_args(args):
@@ -18,7 +18,7 @@ def process_args(args):
             logger.info("\nCorrections made:")
             for i, correction in enumerate(corrections, 1):
                 logger.info(f"{i}. {correction}")
-        manager.visualize("Dependencies Graph")
+        manager.visualize("Dependencies Graph", mode=args.viz_mode)
         return
 
     if args.directory_path:
@@ -36,6 +36,7 @@ def process_args(args):
                 manager.visualizer.render(
                     temp_storage,
                     f"Dependencies for {os.path.basename(file_path)}",
+                    mode=args.viz_mode,
                 )
         else:
             results = manager.process_directory(directory)
@@ -45,4 +46,4 @@ def process_args(args):
                     logger.info("Corrections made:")
                     for i, correction in enumerate(corrections, 1):
                         logger.info(f"{i}. {correction}")
-            manager.visualize("Full Dependencies Graph")
+            manager.visualize("Full Dependencies Graph", mode=args.viz_mode)

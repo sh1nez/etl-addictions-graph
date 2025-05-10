@@ -8,7 +8,7 @@ from base.visualize import GraphVisualizer
 from base.manager import GraphManager
 
 
-class Procedure:  # TODO mode it to different files.
+class Procedure:
     def __init__(self, name: str, code: str) -> None:
         self.name = name
         self.code = code
@@ -20,11 +20,9 @@ class Procedure:  # TODO mode it to different files.
     def __extract_procedure_code(sql: str) -> str:
         if not ("BEGIN" in sql and "END" in sql):
             return sql
-
         sql = sql.split("BEGIN", 1)[1]
         sql = sql.rsplit("END", 1)[0]
         sql = sql.strip()
-
         return sql
 
     @staticmethod
@@ -34,12 +32,9 @@ class Procedure:  # TODO mode it to different files.
             sql_code,
             re.DOTALL,
         )
-
         if not found:
             return []
-
         procedures = []
-
         for i in found:
             if len(i) == 2:
                 procedures.append(
@@ -47,7 +42,6 @@ class Procedure:  # TODO mode it to different files.
                 )
             else:
                 print(f"Error parsing procedure: {i}")
-
         return procedures
 
     def __repr__(self) -> str:
@@ -57,8 +51,8 @@ class Procedure:  # TODO mode it to different files.
 class BufferTable:
     def __init__(self, name) -> None:
         self.name = name
-        self.write_procedures = set()  # procedures that write into the table
-        self.read_procedures = set()  # procedures that read from the table
+        self.write_procedures = set()
+        self.read_procedures = set()
 
     @staticmethod
     def build_dependencies(buff_tables: List["BufferTable"]) -> Dict[str, Set[Edge]]:
@@ -67,11 +61,9 @@ class BufferTable:
             for proc in buff_table.read_procedures:
                 edge = Edge(buff_table.name, proc.get_graph_name(), BuffRead())
                 dependencies[proc.get_graph_name()].add(edge)
-
             for proc in buff_table.write_procedures:
                 edge = Edge(proc.get_graph_name(), buff_table.name, BuffWrite())
                 dependencies[buff_table.name].add(edge)
-
         return dependencies
 
     @staticmethod
@@ -82,29 +74,22 @@ class BufferTable:
         buff_tables = dict()
         for table in known_buff_tables:
             buff_tables[table.name] = table
-
         all_edges = []
-
         for proc in procedures:
             ast = SqlAst(proc.code)
-
             for to_table, edges in ast.get_dependencies().items():
                 all_edges.extend(edges)
                 if to_table not in buff_tables:
                     buff_tables[to_table] = BufferTable(to_table)
-
                 for edge in edges:
                     if edge.source not in buff_tables:
                         buff_tables[edge.source] = BufferTable(edge.source)
-
                     buff_tables[to_table].write_procedures.add(proc)
                     buff_tables[edge.source].read_procedures.add(proc)
-
         real_buff_tables = set()
         for _, table in buff_tables.items():
             if len(table.write_procedures) > 0 and len(table.read_procedures) > 0:
                 real_buff_tables.add(table)
-
         return real_buff_tables
 
     def __repr__(self) -> str:
@@ -126,26 +111,21 @@ class BufferTableGraphStorage(GraphStorage):
 
     def get_buf_nodes(self):
         nodes = set()
-
         for table in self.buff_tables:
             nodes.add(table.name)
             for proc in table.write_procedures:
                 nodes.add(proc.get_graph_name())
-
             for proc in table.read_procedures:
                 nodes.add(proc.get_graph_name())
         return nodes
 
     def get_buf_edges(self):
         edges = []
-
         for table in self.buff_tables:
             for proc in table.write_procedures:
                 edges.append((proc.get_graph_name(), table.name))
-
             for proc in table.read_procedures:
                 edges.append((table.name, proc.get_graph_name()))
-
         return edges
 
     def clear(self):
@@ -180,7 +160,6 @@ class BufferTableDirectoryParser(DirectoryParser):
                     try:
                         with open(file_path, "r", encoding="utf-8") as f:
                             sql_code = f.read()
-
                             procs = Procedure.extract_procedures(sql_code)
                             tables = BufferTable.find_buffer_tables(
                                 procs, known_buff_tables
@@ -217,10 +196,13 @@ class NewBuffGraphManager(GraphManager):
         return []
 
 
-def run():
+def run(args=None):
     manager = NewBuffGraphManager()
     print("SQL Syntax Corrector and Dependency Analyzer")
     print("-------------------------------------------")
+    viz_mode = "full"  # Default mode
+    if args and hasattr(args, "viz_mode"):
+        viz_mode = args.viz_mode
     choice = input("Would you like to enter SQL code manually? (y/n): ")
     if choice.lower() == "y":
         print("Enter your SQL code (type 'END' on a new line to finish):")
@@ -236,7 +218,7 @@ def run():
             print("\nCorrections made:")
             for i, correction in enumerate(corrections, 1):
                 print(f"{i}. {correction}")
-        manager.visualize("Dependencies Graph")
+        manager.visualize("Dependencies Graph", mode=viz_mode)
     else:
         directory = input("Enter the directory path containing SQL files: ")
         choice = input("Display graphs separately for each file? (y/n): ")
@@ -251,7 +233,9 @@ def run():
                 temp_storage = GraphStorage()
                 temp_storage.add_dependencies(dependencies)
                 manager.visualizer.render(
-                    temp_storage, f"Dependencies for { os.path.basename(file_path)}"
+                    temp_storage,
+                    f"Dependencies for {os.path.basename(file_path)}",
+                    mode=viz_mode,
                 )
         else:
             results = manager.process_directory(directory)
@@ -261,4 +245,4 @@ def run():
                     print("Corrections made:")
                     for i, correction in enumerate(corrections, 1):
                         print(f"{i}. {correction}")
-            manager.visualize("Full Dependencies Graph")
+            manager.visualize("Full Dependencies Graph", mode=viz_mode)

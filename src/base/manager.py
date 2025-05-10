@@ -35,6 +35,6 @@ class GraphManager:
         logger.info(f"Processed directory: {len(results)} files")
         return results
 
-    def visualize(self, title: Optional[str] = None):
-        self.visualizer.render(self.storage, title)
+    def visualize(self, title: Optional[str] = None, mode: str = "full"):
+        self.visualizer.render(self.storage, title, mode=mode)
         logger.info("Visualization completed successfully")

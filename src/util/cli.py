@@ -36,4 +36,12 @@ def parse_arguments():
         help="Comma-separated list of SQL operators to display (e.g., 'SELECT,INSERT,UPDATE'). "
         "If not specified, all operators are shown.",
     )
+
+    parser.add_argument(
+        "--viz-mode",
+        choices=["full", "transform_only"],
+        default="full",
+        help="Visualization mode: 'full' (with inputs/outputs) or 'transform_only' (only transformations)",
+    )
+
     return parser.parse_args()

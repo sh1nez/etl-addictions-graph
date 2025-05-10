@@ -10,6 +10,8 @@ def process_args(args):
         else f"  SQL code: {args.sql_code}"
     )
     print(f"  Separate graphs: {args.separate_graph}")
+    print(f"  Visualization mode: {args.viz_mode}")
+    run(args)
 
 
 def main():
