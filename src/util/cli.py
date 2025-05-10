@@ -30,5 +30,10 @@ def parse_arguments():
         default="false",
         help="Display graphs separately for each file",
     )
-
+    parser.add_argument(
+        "--operators",
+        type=str,
+        help="Comma-separated list of SQL operators to display (e.g., 'SELECT,INSERT,UPDATE'). "
+        "If not specified, all operators are shown.",
+    )
     return parser.parse_args()

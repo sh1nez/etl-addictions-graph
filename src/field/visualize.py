@@ -2,14 +2,18 @@ import networkx as nx
 from typing import Optional
 from matplotlib import pyplot as plt
 from base.storage import GraphStorage
+from base.visualize import GraphVisualizer
+from logger_config import logger
 
 
-class ColumnVisualizer:
+class ColumnVisualizer(GraphVisualizer):
     """Class for visualizing dependency graphs."""
 
-    def render(self, storage: GraphStorage, title: Optional[str] = None):
+    def render(
+        self, storage: GraphStorage, title: Optional[str] = None, output_path=None
+    ):
         if not storage.nodes:
-            print("Graph is empty, no dependencies to display.")
+            logger.warning("Graph is empty, no dependencies to display")
             return
         G = nx.MultiDiGraph()
         G.add_nodes_from(storage.nodes)
@@ -21,7 +25,15 @@ class ColumnVisualizer:
             pos = nx.spring_layout(G, k=0.5, iterations=50)  # Улучшаем layout
 
             # Получаем цвета рёбер
-            edge_colors = [data["color"] for u, v, data in G.edges(data=True)]
+            edge_colors = [
+                data["color"] for u, v, k, data in G.edges(keys=True, data=True)
+            ]
+
+            # Получаем стиль рёбер, иначе solid по умолчанию
+            edge_style = [
+                data.get("style", "solid")
+                for u, v, k, data in G.edges(keys=True, data=True)
+            ]
 
             edge_labels = {
                 (u, v, k): d["operation"]
@@ -101,12 +113,17 @@ class ColumnVisualizer:
 
             fig.canvas.mpl_connect("pick_event", on_pick)
 
-            if title:
-                plt.title(title)
-            plt.tight_layout()
-            plt.show()
+            # Save or show
+            if output_path:
+                plt.savefig(output_path, format="png", dpi=300, bbox_inches="tight")
+                logger.info(f"Graph saved to {output_path}")
+            else:
+                plt.tight_layout()
+                plt.show()
+
+            plt.close()
+            logger.debug("Graph rendering completed")
         except Exception as e:
-            print(f"Error visualizing graph: {e}")
-            print(
-                "You may need to run this in an environment that supports matplotlib display."
+            logger.error(
+                f"Error visualizing graph: {e}\nYou may need to run this in an environment that supports matplotlib display."
             )

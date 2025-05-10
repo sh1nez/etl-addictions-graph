@@ -11,18 +11,16 @@ from sqlglot.expressions import (
 )
 from itertools import zip_longest
 from typing import Optional, List, Tuple
+from logger_config import logger
+import traceback
 
 
 def print_ifnt_str(func):  # * for testing
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         if not isinstance(result, str):
-            # print("!"*50)
-            print("INPUT:", end=" ")
-            print(*args)
-            # print(args[0].args)
-            print("OUTPUT:", end=" ")
-            print(result)
+            logger.debug(f"INPUT: {args[0]}")
+            logger.debug(f"OUTPUT: {result}")
         return result
 
     return wrapper
@@ -46,7 +44,7 @@ def parse_columns(op: Expression) -> Tuple[Optional[List[str]], Optional[List[st
         else:
             return None
     except Exception as e:
-        print(f"Error parsing column:{e}")
+        logger.error(f"Error parsing column:{e}\n{traceback.format_exc(e)}")
         return (None, None)
 
 
@@ -70,7 +68,7 @@ def _this_deep_parse(op, prior=None, typesearch=str, star_except=True) -> str:
             counter += 1
         raise Exception("No type found")
     except Exception as e:
-        print(e)
+        logger.warning(f"Couldn't  parse column: {e}")
         return f"unknown"
 
 
@@ -79,7 +77,12 @@ def _where_column_names(op: Expression) -> list[str]:
     col_names = []
     found_columns = False
     for i in Expression.bfs(op.args["where"]):
-        this = i.args["this"]
+        if "this" in i.args:
+            this = i.args["this"]
+        elif found_columns:
+            break
+        else:
+            continue
         if isinstance(this, Column):
             found_columns = True
             col_names.append(_this_deep_parse(this))
@@ -141,12 +144,15 @@ def _parse_merge(op: Merge):
 
 
 def _select_columns(op):
-    if (
-        "this" in op.args
-        and "this" in op.args["this"].args
-        and isinstance(op.args["this"].args["this"], str)
-    ):
-        return op.args["this"].args["this"]
+    if hasattr(op, "args") and "this" in op.args:
+        if (
+            hasattr(op.args["this"], "args")
+            and "this" in op.args["this"].args
+            and isinstance(op.args["this"].args["this"], str)
+        ):
+            return op.args["this"].args["this"]
+        else:
+            return str(op.args["this"])
     if isinstance(op, Alias):
         return str(op.args["this"])
     return str(op)

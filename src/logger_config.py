@@ -50,6 +50,8 @@ def setup_logger(mode: str = "normal"):
         console_h.setFormatter(formatter)
         if mode == "errors_only":
             console_h.setLevel(logging.ERROR)
+        elif mode == "debug":
+            console_h.setLevel(logging.DEBUG)
         else:  # normal
             console_h.setLevel(logging.INFO)
         logger.addHandler(console_h)
