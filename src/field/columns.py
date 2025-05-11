@@ -8,6 +8,9 @@ from sqlglot.expressions import (
     Column,
     Values,
     Alias,
+    Join,
+    Subquery,
+    Table,
 )
 from itertools import zip_longest
 from typing import Optional, List, Tuple
@@ -89,7 +92,10 @@ def parse_columns(op: Expression) -> Tuple[Optional[List[str]], Optional[List[st
             return _parse_merge(op)
         elif isinstance(op, Select):
             return _parse_select(op)
+        elif isinstance(op, Join):
+            return _parse_join(op)
         else:
+            logger.warning(f"Unknown operation for column parser: {op}")
             return None
     except Exception as e:
         logger.error(f"Error parsing column:{e}\n{traceback.format_exc(e)}")
@@ -130,7 +136,7 @@ def _this_deep_parse(op, prior=None, typesearch=str, star_except=True) -> str:
         return f"unknown"
 
 
-def _where_column_names(op: Expression) -> list[str]:
+def _where_column_names(op: Expression, where_code: str = "where") -> list[str]:
     """Извлекает имена колонок из WHERE-условия.
 
     Args:
@@ -141,7 +147,7 @@ def _where_column_names(op: Expression) -> list[str]:
     """
     col_names = []
     found_columns = False
-    for i in Expression.bfs(op.args["where"]):
+    for i in Expression.bfs(op.args[where_code]):
         if "this" in i.args:
             this = i.args["this"]
         elif found_columns:
@@ -279,3 +285,22 @@ def _parse_select(op: Select):
     if select_cols[0].is_star:
         return (["*"], where)
     return ([_select_columns(i) for i in select_cols], where)
+
+
+def _parse_join(op: Join):
+    """Обрабатывает JOIN-операцию.
+
+    Returns:
+        Tuple:
+            - List["JOINstr"]: таблица/подзапрос в JOIN
+            - None
+    """
+    subq = op.args.get("this")
+    if isinstance(subq, Subquery):
+        subq = subq.args.get("this")
+        subq = str(subq)  # ? recursive column parse
+    elif isinstance(subq, Table):
+        subq = _this_deep_parse(subq)
+    where = _where_column_names(op, "on") if "on" in op.args else []
+
+    return (["JOIN" + subq], where)
