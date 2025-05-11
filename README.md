@@ -11,7 +11,7 @@ python -m venv venv
 source venv/bin/activate
 pip install -r ./requirements.txt
 ```
-#Nix
+## Nix
 For pure MacOS users and other paupers in terrible life situation u can use nix:
 ```bash
 nix develop
