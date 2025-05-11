@@ -15,7 +15,35 @@ from logger_config import logger
 
 
 class ColumnStorage(GraphStorage):
+    """Хранилище для зависимостей между колонками таблиц.
+
+    Наследует функциональность GraphStorage и добавляет:
+        - Анализ зависимостей на уровне колонок
+        - Расширенную обработку метаданных для операций
+
+    Attributes:
+        nodes (set): Множество таблиц/сущностей
+        edges (list): Рёбра зависимостей в формате (источник, цель, метаданные)
+        COLORS (dict): Цвета для визуализации операций (наследуется от GraphStorage)
+    """
+
     def add_dependencies(self, dependencies: defaultdict):
+        """Добавляет зависимости в хранилище с анализом колонок.
+
+        Args:
+            dependencies (defaultdict): Зависимости в формате:
+                {"target_table": [Edge(source, target, op),...]}
+
+        Raises:
+            TypeError: Если передан неверный тип зависимостей
+
+        Example:
+            >>> storage = ColumnStorage()
+            >>> deps = defaultdict(set)
+            >>> deps["users"].add(Edge("orders", "users", Insert()))
+            >>> storage.add_dependencies(deps)
+        """
+
         for to_table, edges in dependencies.items():
             self.nodes.add(to_table)
             for edge in edges:

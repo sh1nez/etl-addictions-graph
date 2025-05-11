@@ -1,0 +1,229 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Общее описание &mdash; документация etl-addictions-graph </title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=372fde1a"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="Основной модуль" href="main.html" />
+    <link rel="prev" title="Структура проекта" href="index.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            etl-addictions-graph
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Общее описание</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id2">Базовый функционал</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="main.html">Основной модуль</a></li>
+<li class="toctree-l3"><a class="reference internal" href="util.html">Описание утилит</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loger.html">Логирование</a></li>
+<li class="toctree-l3"><a class="reference internal" href="base.html">Базовые модули</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#id3">Режим-специфичный функционал</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="field.html">Модули для field режима</a></li>
+<li class="toctree-l3"><a class="reference internal" href="table.html">Модули для table режима</a></li>
+<li class="toctree-l3"><a class="reference internal" href="func.html">Модули для functional режима</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sheme.html">Взаимодействие компонентов</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">etl-addictions-graph</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Общее описание</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/files.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <section id="id1">
+<h1>Общее описание<a class="headerlink" href="#id1" title="Ссылка на этот заголовок"></a></h1>
+<p>Проект предназначен для анализа SQL-зависимостей и визуализации графов ETL.
+Основные компоненты разделены по функциональному назначению:</p>
+<ul class="simple">
+<li><p><strong>Базовый функционал</strong>: Общие утилиты, парсинг аргументов, логирование</p></li>
+<li><p><strong>Режим-специфичный функционал</strong>: Модули для работы в режимах <code class="docutils literal notranslate"><span class="pre">table</span></code>, <code class="docutils literal notranslate"><span class="pre">field</span></code>, <code class="docutils literal notranslate"><span class="pre">functional</span></code></p></li>
+</ul>
+<section id="id2">
+<h2>Базовый функционал<a class="headerlink" href="#id2" title="Ссылка на этот заголовок"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Директория/Файл</p></th>
+<th class="head"><p>Описание</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/src/main.py</span></code></p></td>
+<td><p>Точка входа. Управление режимами, инициализация компонентов</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/src/util/cli.py</span></code></p></td>
+<td><p>Парсинг аргументов командной строки (режимы, пути, SQL-код)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/logger_config.py</span></code></p></td>
+<td><p>Конфигурация логгера с ротацией файлов и режимами вывода</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/dialect.py</span></code></p></td>
+<td><p>Автодетекция SQL-диалекта (PostgreSQL, Oracle)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/src/base/run.py</span></code></p></td>
+<td><p>Базовый функционал</p></td>
+</tr>
+</tbody>
+</table>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="main.html">Основной модуль</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="main.html#main.configure_logging"><code class="docutils literal notranslate"><span class="pre">configure_logging()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html#main.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="util.html">Описание утилит</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli.html">cli.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dialect.html">dialect.py</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="loger.html">Логирование</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="loger.html#logger_config.setup_logger"><code class="docutils literal notranslate"><span class="pre">setup_logger()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="base.html">Базовые модули</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="manager.html">manager.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parser.html">parse.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html">run.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="storage.html">storage.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualize.html">visualize.py</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="id3">
+<h2>Режим-специфичный функционал<a class="headerlink" href="#id3" title="Ссылка на этот заголовок"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Директория</p></th>
+<th class="head"><p>Режимы и назначение</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/src/table/run.py</span></code></p></td>
+<td><p>Режим <code class="docutils literal notranslate"><span class="pre">table</span></code>: Анализ табличных зависимостей</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/src/field/run.py</span></code></p></td>
+<td><p>Режим <code class="docutils literal notranslate"><span class="pre">field</span></code>: Анализ связей между полями таблиц</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/src/func/run.py</span></code></p></td>
+<td><p>Режим <code class="docutils literal notranslate"><span class="pre">functional</span></code>: Построение полного графа зависимостей</p></td>
+</tr>
+</tbody>
+</table>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="field.html">Модули для field режима</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="columns.html">columns.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="field_run.html">run.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="field_storage.html">storage.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="field_visualizer.html">visualize.py</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="table.html">Модули для table режима</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="table_run.html">run.py</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="func.html">Модули для functional режима</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="buff_tables.html">buff_tables.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="func_run.html">run.py</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="index.html" class="btn btn-neutral float-left" title="Структура проекта" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="main.html" class="btn btn-neutral float-right" title="Основной модуль" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2025, MTUCI. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

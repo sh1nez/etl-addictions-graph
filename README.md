@@ -1,4 +1,4 @@
-# Utility for parsing DDL and generating an ETL ~~dependencies~~ addictions graph.
+﻿# Utility for parsing DDL and generating an ETL ~~dependencies~~ addictions graph.
 
 * ./src - source code
 * ./ddl - sql code (pg/mysql/oracle dialects)
@@ -11,7 +11,11 @@ python -m venv venv
 source venv/bin/activate
 pip install -r ./requirements.txt
 ```
-
+## Nix
+For pure MacOS users and other paupers in terrible life situation u can use nix:
+```bash
+nix develop
+```
 ## UV - Python Package Manager
 
 [Документация UV](https://docs.astral.sh/uv/)
@@ -103,4 +107,4 @@ uv run src/main.py --mode functional --sql_code "CREATE TABLE test (id int);" --
 
 # Running in field mode with directory processing and separate graphs
 uv run src/main.py --mode field --directory_path ./ddl --separate_graph true
-```
+```�

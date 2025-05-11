@@ -8,7 +8,16 @@ from matplotlib.patches import FancyArrowPatch
 
 
 class ColumnVisualizer(GraphVisualizer):
-    """Class for visualizing dependency graphs."""
+    """Визуализатор графов зависимостей между колонками таблиц.
+
+    Наследует функциональность GraphVisualizer и добавляет:
+        - Интерактивное отображение информации о колонках при клике
+        - Расширенную стилизацию для операций с колонками
+        - Автоматическое определение стилей соединений для мультиграфов
+
+    Attributes:
+        Наследует все атрибуты GraphVisualizer
+    """
 
     def __init__(self):
         self.pressed_edge = None
@@ -21,8 +30,33 @@ class ColumnVisualizer(GraphVisualizer):
         storage: GraphStorage,
         title: Optional[str] = None,
         output_path=None,
+        figsize: tuple = (20, 16),
         sep: bool = False,
     ):
+        """Визуализирует граф зависимостей с возможностью интерактивного взаимодействия.
+
+        Args:
+            storage (GraphStorage): Хранилище с данными графа
+            title (str, optional): Заголовок графа. По умолчанию None
+            output_path (str, optional): Путь для сохранения изображения. Пример: "output/graph.png"
+
+        Raises:
+            RuntimeError: Если визуализация невозможна в текущем окружении
+            ValueError: При передаче некорректных данных
+
+        Example:
+            >>> storage = ColumnStorage()
+            >>> visualizer = ColumnVisualizer()
+            >>> visualizer.render(storage, title="User Columns", output_path="graph.png")
+
+        Особенности реализации:
+            - Использует spring_layout с параметрами k=0.5 и iterations=50
+            - Поддерживает до 10 соединений между узлами с автоматическим смещением
+            - Реализует интерактивные подсказки с информацией о колонках:
+              * ЛКМ по ребру -> отображение связанных колонок
+              * Повторный клик -> скрытие подсказки
+        """
+
         if not storage.nodes:
             logger.warning("Graph is empty, no dependencies to display")
             return
@@ -37,14 +71,12 @@ class ColumnVisualizer(GraphVisualizer):
         self.G.add_edges_from(edges)
         self.pos = nx.spring_layout(self.G, k=0.95, iterations=50)
 
-        if sep:
-            plt.close()
-            self.pressed = None
-            self.last_uv = ()
-            self.last_ann = None
-            self.pressed_edge = None
-            self.fig, self.ax = plt.subplots(figsize=(14, 10))
-            self.fig.canvas.mpl_connect("pick_event", self._on_pick)
+        self.pressed = None
+        self.last_uv = ()
+        self.last_ann = None
+        self.pressed_edge = None
+        self.fig, self.ax = plt.subplots(figsize=figsize)
+        self.fig.canvas.mpl_connect("pick_event", self._on_pick)
 
         # стиль рёбер
         self.edge_colors = [

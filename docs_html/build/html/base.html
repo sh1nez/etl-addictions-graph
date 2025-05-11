@@ -1,0 +1,171 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Базовые модули &mdash; документация etl-addictions-graph </title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=372fde1a"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="manager.py" href="manager.html" />
+    <link rel="prev" title="Логирование" href="loger.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            etl-addictions-graph
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="files.html">Общее описание</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="files.html#id2">Базовый функционал</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="main.html">Основной модуль</a></li>
+<li class="toctree-l3"><a class="reference internal" href="util.html">Описание утилит</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loger.html">Логирование</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Базовые модули</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="manager.html">manager.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="parser.html">parse.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="run.html">run.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="storage.html">storage.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="visualize.html">visualize.py</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="files.html#id3">Режим-специфичный функционал</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sheme.html">Взаимодействие компонентов</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">etl-addictions-graph</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="files.html">Общее описание</a></li>
+      <li class="breadcrumb-item active">Базовые модули</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/base.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <section id="id1">
+<h1>Базовые модули<a class="headerlink" href="#id1" title="Ссылка на этот заголовок"></a></h1>
+<p>Описание базовых классов</p>
+<p><strong>Взаимодействие компонентов</strong></p>
+<dl class="simple">
+<dt>Парсинг:</dt><dd><p>DirectoryParser → SqlAst → Извлечение зависимостей → GraphStorage.</p>
+</dd>
+<dt>Хранение:</dt><dd><p>GraphStorage сохраняет зависимости → Передаёт данные в GraphVisualizer.</p>
+</dd>
+<dt>Визуализация:</dt><dd><p>GraphVisualizer строит граф → Сохраняет/отображает результат.</p>
+</dd>
+<dt>Управление:</dt><dd><p>GraphManager объединяет все этапы → Запускается через run.py.</p>
+</dd>
+</dl>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="manager.html">manager.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="manager.html#base.manager.GraphManager"><code class="docutils literal notranslate"><span class="pre">GraphManager</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="parser.html">parse.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="parser.html#base.parse.DirectoryParser"><code class="docutils literal notranslate"><span class="pre">DirectoryParser</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="parser.html#base.parse.SqlAst"><code class="docutils literal notranslate"><span class="pre">SqlAst</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="run.html">run.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="run.html#base.run.process_args"><code class="docutils literal notranslate"><span class="pre">process_args()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="storage.html">storage.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="storage.html#base.storage.BuffRead"><code class="docutils literal notranslate"><span class="pre">BuffRead</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="storage.html#base.storage.BuffWrite"><code class="docutils literal notranslate"><span class="pre">BuffWrite</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="storage.html#base.storage.Edge"><code class="docutils literal notranslate"><span class="pre">Edge</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="storage.html#base.storage.GraphStorage"><code class="docutils literal notranslate"><span class="pre">GraphStorage</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="visualize.html">visualize.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="visualize.html#base.visualize.GraphVisualizer"><code class="docutils literal notranslate"><span class="pre">GraphVisualizer</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="loger.html" class="btn btn-neutral float-left" title="Логирование" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="manager.html" class="btn btn-neutral float-right" title="manager.py" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2025, MTUCI. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

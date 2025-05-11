@@ -1,18 +1,28 @@
 from collections import defaultdict
 import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
 from typing import Optional
-from matplotlib import pyplot as plt
 from base.storage import GraphStorage
 from logger_config import logger
 from matplotlib.patches import FancyArrowPatch
 
 
 class GraphVisualizer:
-    """Class for visualizing SQL dependency graphs."""
+    """Визуализирует графы зависимостей на основе данных из GraphStorage.
+
+    Attributes:
+        Нет публичных атрибутов. Все параметры передаются в метод render.
+
+    Example:
+        >>> storage = GraphStorage()
+        >>> visualizer = GraphVisualizer()
+        >>> visualizer.render(storage, title="Пример графа", save_path="graph.png")
+    """
 
     ALPHA_HIDDEN = 0.1  # alpha for hidden elements
     MULTIEDGE_LIM = 10  # max arrows displayed between graphs
-    ARROWS_DIST = 0.2
+    ARROWS_DIST = 0.1  # distance between arrows of the same nodes
     LIMIT_SELFLOOPS = True
     LIMIT_MULTIEDGES = True
 
@@ -38,25 +48,53 @@ class GraphVisualizer:
         self.thin_box = dict(boxstyle="round", ec="white", fc="white", linewidth=0.5)
         self.empty_bbox = dict(ec="none", fc="none")
 
-        # Создаём фигуру и сразу вешаем колбэк
-        # Но сами artists появятся только в render()
-        self.fig, self.ax = plt.subplots(figsize=(14, 10))
-        self.fig.canvas.mpl_connect("pick_event", self._on_pick)
+        self.fig = None
+        self.ax = None
+        # self.fig, self.ax = plt.subplots(figsize=(14, 10))
+        # self.fig.canvas.mpl_connect("pick_event", self._on_pick)
         logger.debug("GraphVisualizer initialized")
 
     def render(
         self,
         storage: GraphStorage,
         title: Optional[str] = None,
-        output_path=None,
+        save_path: Optional[str] = None,
+        figsize: tuple = (20, 16),
+        seed: Optional[int] = 42,
+        central_spread: float = 2.0,
+        peripheral_spread: float = 1.5,
         sep: bool = False,
     ):
-        """Render the graph using NetworkX and Matplotlib."""
+        """Визуализирует граф зависимостей и отображает/сохраняет результат.
+
+        Args:
+            storage (GraphStorage): Хранилище с данными графа.
+            title (str, optional): Заголовок графа. По умолчанию None.
+            save_path (str, optional): Путь для сохранения изображения. Пример: "output/graph.png".
+            figsize (tuple): Размер холста в дюймах. По умолчанию (20, 16).
+            seed (int, optional): Seed для воспроизводимости расположения узлов.
+            central_spread (float): Коэффициент расстояния между центральными узлами.
+            peripheral_spread (float): Коэффициент расстояния для периферийных узлов.
+            sep (bool): Для сброса вывода при выводе нескольких графов. По умолчанию False.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: Если передан пустой storage.
+
+        Example:
+            >>> # Базовая визуализация
+            >>> visualizer.render(storage)
+
+            >>> # Кастомизация параметров
+            >>> visualizer.render(storage, title="Data Pipeline", save_path="pipeline.png", figsize=(15, 10), seed=123, central_spread=3.0)
+        """
         if not storage.nodes:
             logger.warning("Graph is empty, no dependencies to display")
             return
-
         edges = storage.edges
+        print(f"Edges: {edges}")
         if self.LIMIT_SELFLOOPS:
             edges = self._limit_self_loops(edges)
         if self.LIMIT_MULTIEDGES:
@@ -64,30 +102,71 @@ class GraphVisualizer:
         self.G = nx.MultiDiGraph()
         self.G.add_nodes_from(storage.nodes)
         self.G.add_edges_from(edges)
-        self.pos = nx.spring_layout(self.G, k=0.95, iterations=50)
+        logger.debug(
+            f"Created graph with {self.G.number_of_nodes()} nodes and {self.G.number_of_edges()} edges"
+        )
 
-        if sep:
-            plt.close()
-            self.pressed = None
-            self.fig, self.ax = plt.subplots(figsize=(14, 10))
-            self.fig.canvas.mpl_connect("pick_event", self._on_pick)
+        # Классификация узлов
+        central_nodes = [
+            n
+            for n in self.G.nodes()
+            if self.G.in_degree(n) > 0 and self.G.out_degree(n) > 0
+        ]
+        peripheral_nodes = [n for n in self.G.nodes() if n not in central_nodes]
 
-        # debug self-loops
-        # self_loops = {
-        #     (u, v, k): d
-        #     for (u, v, k), d in G.edges(keys=True,data=True)
-        #     if u == v
-        # }
-        # logger.debug(self_loops)
+        # Логирование классификации
+        logger.debug(
+            f"Central nodes: {len(central_nodes)}, Peripheral nodes: {len(peripheral_nodes)}"
+        )
 
-        # стиль рёбер
-        self.edge_colors = [
+        # Обработка крайних случаев
+        if not central_nodes:
+            logger.warning("No central nodes found, using all nodes as central")
+            central_nodes = list(self.G.nodes())
+            peripheral_nodes = []
+        elif not peripheral_nodes:
+            logger.warning("No peripheral nodes found, using spring layout")
+            if seed is not None:
+                np.random.seed(seed)
+            self.pos = nx.spring_layout(self.G, k=0.2, iterations=150, seed=seed)
+        else:
+            # Начальное радиальное расположение
+            if seed is not None:
+                np.random.seed(seed)
+            self.pos = nx.shell_layout(self.G, nlist=[central_nodes, peripheral_nodes])
+
+            # Увеличение расстояния между центральными узлами
+            if len(central_nodes) > 1:
+                central_subgraph = self.G.subgraph(central_nodes)
+                central_pos = nx.spring_layout(
+                    central_subgraph,
+                    k=central_spread / np.sqrt(len(central_nodes)),
+                    iterations=50,
+                    seed=seed,
+                )
+                for node in central_nodes:
+                    self.pos[node] = central_pos[node]
+
+            # Увеличение расстояния между периферийными узлами
+            for node in peripheral_nodes:
+                x, y = self.pos[node]
+                norm = np.sqrt(x**2 + y**2)
+                if norm > 0:
+                    self.pos[node] = (x * peripheral_spread, y * peripheral_spread)
+
+        self.pressed = None
+        self.fig, self.ax = plt.subplots(figsize=figsize)
+        self.fig.canvas.mpl_connect("pick_event", self._on_pick)
+
+        # настройка визуальных параметров
+        edge_colors = [
             data["color"] for u, v, k, data in self.G.edges(keys=True, data=True)
         ]
-        self.edge_style = [
+        edge_style = [
             data.get("style", "solid")
             for u, v, k, data in self.G.edges(keys=True, data=True)
         ]
+        node_sizes = [1200 if n in central_nodes else 800 for n in self.G.nodes()]
         # отрисовка операций(подписей рёбер)
         edge_labels = {
             (u, v, k): d["operation"]
@@ -101,13 +180,13 @@ class GraphVisualizer:
             ax=self.ax,
             with_labels=False,
             node_color="lightblue",
-            edge_color=self.edge_colors,
+            edge_color=edge_colors,
             node_size=2000,
             arrows=True,
             arrowstyle="->",
             arrowsize=15,
             connectionstyle=self.connectionstyle,
-            style=self.edge_style,
+            style=edge_style,
         )
 
         self.edge_label_texts = nx.draw_networkx_edge_labels(
@@ -145,9 +224,9 @@ class GraphVisualizer:
         plt.axis("off")
 
         # Save or show
-        if output_path:
-            plt.savefig(output_path, format="png", dpi=300, bbox_inches="tight")
-            logger.info(f"Graph saved to {output_path}")
+        if save_path:
+            plt.savefig(save_path, format="png", dpi=300, bbox_inches="tight")
+            logger.info(f"Graph saved to {save_path}")
         else:
             plt.tight_layout()
             plt.show()
@@ -211,6 +290,7 @@ class GraphVisualizer:
 
     def _limit_self_loops(self, edges, max_loops=4, only_uniq_op=False):
         """
+        почему max_loops == 4:
         Для каждого узла (u == v) оставляем не более четырёх петель
         (больше nx и matplotlib не отображает, если не переопределять библиотечные настройки)
         https://stackoverflow.com/q/74350464
