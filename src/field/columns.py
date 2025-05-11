@@ -15,7 +15,20 @@ from logger_config import logger
 import traceback
 
 
-def print_ifnt_str(func):  # * for testing
+from functools import wraps
+
+
+def print_ifnt_str(func):
+    """Декоратор для логирования входных и выходных данных функций (только для отладки).
+
+    Args:
+        func: Оборачиваемая функция
+
+    Returns:
+        Обёрнутая функция с логированием.
+    """
+
+    @wraps(func)  # Сохраняет метаданные исходной функции
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         if not isinstance(result, str):
@@ -26,10 +39,45 @@ def print_ifnt_str(func):  # * for testing
     return wrapper
 
 
-# TODO: join parse, ?Reference parse?
+# def print_ifnt_str(func):  # * for testing
+#     """Декоратор для логирования входных и выходных данных функций (только для отладки).
+#
+#     Args:
+#         func: Оборачиваемая функция
+#
+#     Returns:
+#         Обёрнутая функция с логированием.
+#     """
+#     def wrapper(*args, **kwargs):
+#         result = func(*args, **kwargs)
+#         if not isinstance(result, str):
+#             logger.debug(f"INPUT: {args[0]}")
+#             logger.debug(f"OUTPUT: {result}")
+#         return result
+#
+#     return wrapper
+
+
 @print_ifnt_str
 def parse_columns(op: Expression) -> Tuple[Optional[List[str]], Optional[List[str]]]:
-    """If parsed correctly, returns tuple ([<source_table_column>:?<input_table_column>?],[statement_columns])."""
+    #: :meta member:
+
+    """Анализирует SQL-операцию и возвращает информацию о колонках.
+
+    Args:
+        op (Expression): SQL-выражение для анализа.
+
+    Returns:
+        Tuple:
+            - List[str]: Колонки в формате ["источник:цель"]
+            - List[str]: Колонки из WHERE-условия (если есть)
+
+    Example:
+        >>> expr = sqlglot.parse_one("INSERT INTO table (a, b) VALUES (1, 2)")
+        >>> parse_columns(expr)
+        (['a:input', 'b:input'], None)
+    """
+
     try:
         if isinstance(op, Insert):
             return _parse_insert(op)
@@ -49,7 +97,17 @@ def parse_columns(op: Expression) -> Tuple[Optional[List[str]], Optional[List[st
 
 
 def _this_deep_parse(op, prior=None, typesearch=str, star_except=True) -> str:
-    """Parses the element 'this' until finds str. May parse element prior if given, change required type and disable Star() class checking"""
+    """Рекурсивно извлекает имя колонки/таблицы из выражения.
+
+    Args:
+        op (Expression): Выражение для анализа.
+        prior (str, optional): Приоритетный атрибут для поиска.
+        typesearch (type): Ожидаемый тип результата.
+        star_except (bool): Обрабатывать ли звездочку (*) как специальный случай.
+
+    Returns:
+        str: Извлеченное имя или "unknown" при ошибке.
+    """
     if isinstance(op, typesearch):
         return op
     if star_except and isinstance(op, Expression) and op.is_star:
@@ -73,7 +131,14 @@ def _this_deep_parse(op, prior=None, typesearch=str, star_except=True) -> str:
 
 
 def _where_column_names(op: Expression) -> list[str]:
-    """Finding Column(s) and name(s) in where by BFS search"""
+    """Извлекает имена колонок из WHERE-условия.
+
+    Args:
+        op (Expression): WHERE-выражение.
+
+    Returns:
+        List[str]: Список колонок. Пример: ["user_id", "created_at"]
+    """
     col_names = []
     found_columns = False
     for i in Expression.bfs(op.args["where"]):
@@ -92,7 +157,13 @@ def _where_column_names(op: Expression) -> list[str]:
 
 
 def _parse_insert(op: Insert):
-    """Returns (["<modifying_table_column>:<new_column_name>"], None) since no where in insert"""
+    """Обрабатывает INSERT-операцию.
+
+    Returns:
+        Tuple:
+            - List[str]: Колонки в формате ["таблица:значение"]
+            - None (WHERE отсутствует в INSERT)
+    """
     insert_cols = op.args["this"].args.get("expressions", ["*"])
     incoming_cols = []
     if isinstance(op.args["expression"], Values):
@@ -111,7 +182,13 @@ def _parse_insert(op: Insert):
 
 
 def _parse_update(op: Update):
-    """Returns (["<modifying_table_column>:<new_column_name>"], [<statement_column_name>]) if where statement exists"""
+    """Обрабатывает UPDATE-операцию.
+
+    Returns:
+        Tuple:
+            - List[str]: Колонки для обновления
+            - List[str]: Колонки из WHERE-условия
+    """
     update_cols = op.args.get("expressions", [])
     where = _where_column_names(op) if "where" in op.args and op.args["where"] else []
     if len(update_cols) != 0:
@@ -126,14 +203,26 @@ def _parse_update(op: Update):
 
 
 def _parse_delete(op: Delete):
-    """Returns (None, [<statement_column_name>]) if where statement exists"""
+    """Обрабатывает DELETE-операцию.
+
+    Returns:
+        Tuple:
+            - None (нет изменяемых колонок)
+            - List[str]: Колонки из WHERE-условия
+    """
     if op.args["where"] is None:
         return []
     return (None, _where_column_names(op))
 
 
 def _parse_merge(op: Merge):
-    """Returns ([<column_name>],None) since merge op is processed separately"""
+    """Обрабатывает MERGE-операцию.
+
+    Returns:
+        Tuple:
+            - List[str]: Колонки для слияния
+            - None
+    """
     if "on" in op.args and op.args["on"]:
         on = op.args["on"]
         return (
@@ -144,6 +233,24 @@ def _parse_merge(op: Merge):
 
 
 def _select_columns(op):
+    """Извлекает имена колонок из SELECT-выражения.
+
+    Обрабатывает различные варианты выражений:
+    - Прямые ссылки на колонки (Column)
+    - Алиасы (Alias)
+    - Сложные выражения (например, функции агрегации)
+
+    Args:
+        op (Expression): Выражение из SELECT-клаузы
+
+    Returns:
+        str: Название колонки или строковое представление выражения
+
+    Example:
+        >>> expr = sqlglot.parse_one("SELECT COUNT(id) AS total FROM users")
+        >>> _select_columns(expr.args["expressions"][0])
+        'COUNT(id)'
+    """
     if hasattr(op, "args") and "this" in op.args:
         if (
             hasattr(op.args["this"], "args")
@@ -159,7 +266,13 @@ def _select_columns(op):
 
 
 def _parse_select(op: Select):
-    """Returns ([<displaying_columns_name>], [<statement_column_name>]) if where statement exists"""
+    """Обрабатывает SELECT-операцию.
+
+    Returns:
+        Tuple:
+            - List[str]: Выбираемые колонки
+            - List[str]: Колонки из WHERE-условия
+    """
     where = []
     where = _where_column_names(op) if "where" in op.args else []
     select_cols = op.args["expressions"]

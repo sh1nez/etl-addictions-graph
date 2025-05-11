@@ -30,7 +30,7 @@ WITH ConsumptionPerPigeon AS (
 )
 SELECT * FROM ConsumptionPerPigeon WHERE total_grams > 500;
 
---Рекурсивные CTE
+--пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ CTE
 WITH RECURSIVE EmployeeHierarchy AS (
     SELECT employee_id, first_name, last_name, supervisor_id, 1 AS level
     FROM Employee WHERE supervisor_id IS NULL
@@ -51,7 +51,7 @@ WITH RECURSIVE ManagerChain AS (
 )
 SELECT * FROM ManagerChain;
 
---Оконные функции
+--пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 SELECT purchase_id, supplier_id, cost,
        RANK() OVER (PARTITION BY feed_type ORDER BY cost DESC) AS cost_rank
 FROM FeedPurchase;
