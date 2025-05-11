@@ -42,14 +42,14 @@ class TestBuffer:
 
     def test_buffer_table_identification(self, writer_proc, reader_proc):
         procedures = [writer_proc, reader_proc]
-        buff_tables = BufferTable.find_buffer_tables(procedures, [])
+        buff_tables, _ = BufferTable.find_buffer_tables(procedures, [])
         names = {t.name for t in buff_tables}
         assert "buffer_table" in names
 
     def test_dependency_edges(self, writer_proc, reader_proc):
         procedures = [writer_proc, reader_proc]
-        buff_tables = BufferTable.find_buffer_tables(procedures, [])
-        deps = BufferTable.build_dependencies(buff_tables)
+        buff_tables, _ = BufferTable.find_buffer_tables(procedures, [])
+        deps = BufferTable.build_dependencies(buff_tables, [])
 
         buffer_name = "buffer_table"
         writer_name = writer_proc.get_graph_name()
@@ -80,7 +80,7 @@ class TestBuffer:
 
     def test_buffer_table_repr(self, writer_proc, reader_proc):
         procedures = [writer_proc, reader_proc]
-        buff_tables = BufferTable.find_buffer_tables(procedures, [])
+        buff_tables, _ = BufferTable.find_buffer_tables(procedures, [])
         for table in buff_tables:
             text = repr(table)
             assert table.name in text

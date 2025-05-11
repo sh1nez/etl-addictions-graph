@@ -168,7 +168,7 @@ class BufferTable:
     def find_buffer_tables(
         procedures: List[Procedure],
         known_buff_tables: List["BufferTable"] | Set["BufferTable"],
-    ) -> List["BufferTable"]:
+    ) -> Tuple[List["BufferTable"], List[Edge]]:
         """Идентифицирует буферные таблицы по их использованию.
 
         Args:
