@@ -30,9 +30,9 @@ def process_args(args):
                         logger.info(f"{i}. {correction}")
                 temp_storage = ColumnStorage()
                 temp_storage.add_dependencies(dependencies)
-                manager.visualizer.render(
-                    temp_storage,
+                manager.visualize(
                     f"Dependencies for {os.path.basename(file_path)}",
+                    temp_storage,
                 )
         else:
             results = manager.process_directory(args.directory_path)
