@@ -128,7 +128,9 @@ class BufferTable:
         self.read_procedures = set()  # procedures that read from the table
 
     @staticmethod
-    def build_dependencies(buff_tables: List["BufferTable"]) -> Dict[str, Set[Edge]]:
+    def build_dependencies(
+        buff_tables: List["BufferTable"], edges: List[Edge]
+    ) -> Dict[str, Set[Edge]]:
         """Строит граф зависимостей между таблицами и процедурами.
 
         Args:
@@ -158,14 +160,7 @@ class BufferTable:
             if edge.target not in dependencies:
                 dependencies[edge.target] = set()
 
-            exists = False
-            for i in dependencies[edge.target]:
-                if i.source == edge.source and i.op == edge.op:
-                    exists = True
-                    break
-
-            if not exists:
-                dependencies[edge.target].add(edge)
+            dependencies[edge.target].add(edge)
 
         return dependencies
 
@@ -304,7 +299,9 @@ class BufferTableDirectoryParser:
     def __init__(self, sql_ast_cls):
         self.sql_ast_cls = sql_ast_cls
 
-    def parse_directory(self, directory: str) -> List[BufferTable]:
+    def parse_directory(
+        self, directory: str, sep_parse: bool = False
+    ) -> List[BufferTable]:
         """Обрабатывает все .ddl файлы в директории.
 
         Args:
@@ -394,7 +391,7 @@ class NewBuffGraphManager(GraphManager):
         return []
 
 
-def run():
+def run(directory, sql_code, separate_graph):
     """Интерактивная консольная утилита для анализа зависимостей.
 
     Пример workflow:
