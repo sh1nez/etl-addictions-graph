@@ -61,7 +61,10 @@ class BufferTable:
         self.read_procedures = set()  # procedures that read from the table
 
     @staticmethod
-    def build_dependencies(buff_tables: List["BufferTable"]) -> Dict[str, Set[Edge]]:
+    def build_dependencies(
+        buff_tables: List["BufferTable"], edges: List[Edge]
+    ) -> Dict[str, Set[Edge]]:
+        print(*edges, sep="\n")
         dependencies = defaultdict(set)
         for buff_table in buff_tables:
             for proc in buff_table.read_procedures:
@@ -72,13 +75,26 @@ class BufferTable:
                 edge = Edge(proc.get_graph_name(), buff_table.name, BuffWrite())
                 dependencies[buff_table.name].add(edge)
 
+        for edge in edges:
+            if edge.target not in dependencies:
+                dependencies[edge.target] = set()
+
+            exists = False
+            for i in dependencies[edge.target]:
+                if i.source == edge.source and i.op == edge.op:
+                    exists = True
+                    break
+
+            if not exists:
+                dependencies[edge.target].add(edge)
+
         return dependencies
 
     @staticmethod
     def find_buffer_tables(
         procedures: List[Procedure],
         known_buff_tables: List["BufferTable"] | Set["BufferTable"],
-    ) -> List["BufferTable"]:
+    ) -> Tuple[List["BufferTable"], List[Edge]]:
         buff_tables = dict()
         for table in known_buff_tables:
             buff_tables[table.name] = table
@@ -101,11 +117,12 @@ class BufferTable:
                     buff_tables[edge.source].read_procedures.add(proc)
 
         real_buff_tables = set()
+        other_tables = set()
         for _, table in buff_tables.items():
             if len(table.write_procedures) > 0 and len(table.read_procedures) > 0:
                 real_buff_tables.add(table)
 
-        return real_buff_tables
+        return real_buff_tables, all_edges
 
     def __repr__(self) -> str:
         return f"{self.name}:\nreaders: {(self.read_procedures)}\nwriters: {self.write_procedures}"
@@ -182,12 +199,12 @@ class BufferTableDirectoryParser(DirectoryParser):
                             sql_code = f.read()
 
                             procs = Procedure.extract_procedures(sql_code)
-                            tables = BufferTable.find_buffer_tables(
+                            tables, edges = BufferTable.find_buffer_tables(
                                 procs, known_buff_tables
                             )
                             if not sep_parse:
                                 known_buff_tables = tables
-                            dependencies = BufferTable.build_dependencies(tables)
+                            dependencies = BufferTable.build_dependencies(tables, edges)
                             results.append(
                                 (
                                     dependencies,
@@ -217,20 +234,9 @@ class NewBuffGraphManager(GraphManager):
         return []
 
 
-def run():
+def run(directory: str = None, sql_code: str = None, separate_graph: bool = False):
     manager = NewBuffGraphManager()
-    print("SQL Syntax Corrector and Dependency Analyzer")
-    print("-------------------------------------------")
-    choice = input("Would you like to enter SQL code manually? (y/n): ")
-    if choice.lower() == "y":
-        print("Enter your SQL code (type 'END' on a new line to finish):")
-        sql_lines = []
-        while True:
-            line = input()
-            if line.upper() == "END":
-                break
-            sql_lines.append(line)
-        sql_code = "\n".join(sql_lines)
+    if sql_code:
         corrections = manager.process_sql(sql_code)
         if corrections:
             print("\nCorrections made:")
@@ -238,9 +244,7 @@ def run():
                 print(f"{i}. {correction}")
         manager.visualize("Dependencies Graph")
     else:
-        directory = input("Enter the directory path containing SQL files: ")
-        choice = input("Display graphs separately for each file? (y/n): ")
-        if choice.lower() == "y":
+        if separate_graph:
             parse_results = manager.parser.parse_directory(directory, sep_parse=True)
             for dependencies, corrections, file_path in parse_results:
                 print(f"\nFile: {file_path}")

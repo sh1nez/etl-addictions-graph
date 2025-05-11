@@ -10,7 +10,8 @@ def process_args(args):
         else f"  SQL code: {args.sql_code}"
     )
     print(f"  Separate graphs: {args.separate_graph}")
-
-
-def main():
-    run()
+    run(
+        directory=args.directory_path,
+        sql_code=args.sql_code,
+        separate_graph=args.separate_graph,
+    )

@@ -6,15 +6,6 @@ AS $$
     VALUES (p_name);
 $$;
 
-CREATE OR REPLACE PROCEDURE link_pigeon_supplier(
-    p_pigeon_id INT,
-    p_supplier_id INT
-) LANGUAGE SQL
-AS $$
-    UPDATE Pigeon
-    SET supplier_id = p_supplier_id
-    WHERE pigeon_id = p_pigeon_id;
-$$;
 
 CREATE OR REPLACE FUNCTION select_supplier_pigeons()
 RETURNS TABLE (
