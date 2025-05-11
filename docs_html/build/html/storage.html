@@ -1,0 +1,359 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>storage.py &mdash; документация etl-addictions-graph </title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=372fde1a"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="visualize.py" href="visualize.html" />
+    <link rel="prev" title="run.py" href="run.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            etl-addictions-graph
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="files.html">Общее описание</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="files.html#id2">Базовый функционал</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="main.html">Основной модуль</a></li>
+<li class="toctree-l3"><a class="reference internal" href="util.html">Описание утилит</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loger.html">Логирование</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="base.html">Базовые модули</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="manager.html">manager.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="parser.html">parse.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="run.html">run.py</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">storage.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="visualize.html">visualize.py</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="files.html#id3">Режим-специфичный функционал</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sheme.html">Взаимодействие компонентов</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">etl-addictions-graph</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="files.html">Общее описание</a></li>
+          <li class="breadcrumb-item"><a href="base.html">Базовые модули</a></li>
+      <li class="breadcrumb-item active">storage.py</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/storage.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <section id="storage-py">
+<h1>storage.py<a class="headerlink" href="#storage-py" title="Ссылка на этот заголовок"></a></h1>
+<p>Хранение данных о графе зависимостей.</p>
+<dl class="py class" id="module-base.storage">
+<dt class="sig sig-object py" id="base.storage.BuffRead">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">base.storage.</span></span><span class="sig-name descname"><span class="pre">BuffRead</span></span><a class="headerlink" href="#base.storage.BuffRead" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="base.storage.BuffWrite">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">base.storage.</span></span><span class="sig-name descname"><span class="pre">BuffWrite</span></span><a class="headerlink" href="#base.storage.BuffWrite" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="base.storage.Edge">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">base.storage.</span></span><span class="sig-name descname"><span class="pre">Edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">from_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DML</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Select</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_internal_update</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#base.storage.Edge" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Представляет ребро графа зависимостей между двумя сущностями.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.storage.Edge.source">
+<span class="sig-name descname"><span class="pre">source</span></span><a class="headerlink" href="#base.storage.Edge.source" title="Ссылка на это определение"></a></dt>
+<dd><p>Источник зависимости (таблица/сущность).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.storage.Edge.target">
+<span class="sig-name descname"><span class="pre">target</span></span><a class="headerlink" href="#base.storage.Edge.target" title="Ссылка на это определение"></a></dt>
+<dd><p>Цель зависимости.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.storage.Edge.op">
+<span class="sig-name descname"><span class="pre">op</span></span><a class="headerlink" href="#base.storage.Edge.op" title="Ссылка на это определение"></a></dt>
+<dd><p>Операция, вызывающая зависимость.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[DML, Select]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.storage.Edge.is_internal_update">
+<span class="sig-name descname"><span class="pre">is_internal_update</span></span><a class="headerlink" href="#base.storage.Edge.is_internal_update" title="Ссылка на это определение"></a></dt>
+<dd><p>Флаг внутреннего обновления.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.storage.Edge.is_recursive">
+<span class="sig-name descname"><span class="pre">is_recursive</span></span><a class="headerlink" href="#base.storage.Edge.is_recursive" title="Ссылка на это определение"></a></dt>
+<dd><p>Флаг рекурсивной зависимости.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">edge</span> <span class="o">=</span> <span class="n">Edge</span><span class="p">(</span><span class="s2">&quot;users&quot;</span><span class="p">,</span> <span class="s2">&quot;orders&quot;</span><span class="p">,</span> <span class="n">Insert</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">edge</span><span class="o">.</span><span class="n">is_recursive</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="base.storage.GraphStorage">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">base.storage.</span></span><span class="sig-name descname"><span class="pre">GraphStorage</span></span><a class="headerlink" href="#base.storage.GraphStorage" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Хранилище данных графа зависимостей между SQL-сущностями.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.storage.GraphStorage.nodes">
+<span class="sig-name descname"><span class="pre">nodes</span></span><a class="headerlink" href="#base.storage.GraphStorage.nodes" title="Ссылка на это определение"></a></dt>
+<dd><p>Множество узлов графа (имена таблиц/сущностей).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>set</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.storage.GraphStorage.edges">
+<span class="sig-name descname"><span class="pre">edges</span></span><a class="headerlink" href="#base.storage.GraphStorage.edges" title="Ссылка на это определение"></a></dt>
+<dd><p>Список рёбер графа в формате (источник, цель, метаданные).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.storage.GraphStorage.operator_filter">
+<span class="sig-name descname"><span class="pre">operator_filter</span></span><a class="headerlink" href="#base.storage.GraphStorage.operator_filter" title="Ссылка на это определение"></a></dt>
+<dd><p>Фильтр типов операторов для отображения.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>set</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.storage.GraphStorage.COLORS">
+<span class="sig-name descname"><span class="pre">COLORS</span></span><a class="headerlink" href="#base.storage.GraphStorage.COLORS" title="Ссылка на это определение"></a></dt>
+<dd><p>Сопоставление типов операторов с цветами для визуализации.
+Пример: <cite>{Insert: «red», Select: «purple»}</cite></p>
+<dl class="simple">
+<dt><strong>Важные ключи</strong>:</dt><dd><ul class="simple">
+<li><p><cite>Insert</cite>: Красный</p></li>
+<li><p><cite>Select</cite>: Фиолетовый</p></li>
+<li><p><cite>Join</cite>: Оранжевый</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.storage.GraphStorage.OPERATOR_MAP">
+<span class="sig-name descname"><span class="pre">OPERATOR_MAP</span></span><a class="headerlink" href="#base.storage.GraphStorage.OPERATOR_MAP" title="Ссылка на это определение"></a></dt>
+<dd><p>Соответствие строковых имен операторов их классам.
+Пример: <cite>{«INSERT»: Insert, «SELECT»: Select}</cite></p>
+<dl class="simple">
+<dt><strong>Поддерживаемые операторы</strong>:</dt><dd><ul class="simple">
+<li><p>«INSERT», «UPDATE», «DELETE»,</p></li>
+<li><p>«SELECT», «CREATE», «ALTER»,</p></li>
+<li><p>«DROP», «MERGE», «JOIN», «TABLE»</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">storage</span> <span class="o">=</span> <span class="n">GraphStorage</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">storage</span><span class="o">.</span><span class="n">set_operator_filter</span><span class="p">(</span><span class="s2">&quot;SELECT,INSERT&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">storage</span><span class="o">.</span><span class="n">add_dependencies</span><span class="p">(</span><span class="n">dependencies</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="base.storage.GraphStorage.add_dependencies">
+<span class="sig-name descname"><span class="pre">add_dependencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dependencies</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">defaultdict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#base.storage.GraphStorage.add_dependencies" title="Ссылка на это определение"></a></dt>
+<dd><p>Добавляет зависимости в хранилище.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dependencies</strong> (<em>defaultdict</em>) – Зависимости в формате:
+{цель: [Edge(source, target, op), …]}</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dependencies</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dependencies</span><span class="p">[</span><span class="s2">&quot;table1&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Edge</span><span class="p">(</span><span class="s2">&quot;table2&quot;</span><span class="p">,</span> <span class="s2">&quot;table1&quot;</span><span class="p">,</span> <span class="n">Insert</span><span class="p">()))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">storage</span><span class="o">.</span><span class="n">add_dependencies</span><span class="p">(</span><span class="n">dependencies</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="base.storage.GraphStorage.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#base.storage.GraphStorage.clear" title="Ссылка на это определение"></a></dt>
+<dd><p>Очищает все данные хранилища.</p>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">storage</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="base.storage.GraphStorage.get_filtered_nodes_edges">
+<span class="sig-name descname"><span class="pre">get_filtered_nodes_edges</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#base.storage.GraphStorage.get_filtered_nodes_edges" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает отфильтрованные узлы и рёбра.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(узлы, рёбра) после применения фильтра.</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple[set, list]</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">nodes</span><span class="p">,</span> <span class="n">edges</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">get_filtered_nodes_edges</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="base.storage.GraphStorage.set_operator_filter">
+<span class="sig-name descname"><span class="pre">set_operator_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operators</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#base.storage.GraphStorage.set_operator_filter" title="Ссылка на это определение"></a></dt>
+<dd><p>Устанавливает фильтр отображаемых операторов.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>operators</strong> (<em>str</em><em>, </em><em>optional</em>) – Строка с операторами через запятую.
+Пример: «SELECT,INSERT». Если None, фильтр отключается.</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">storage</span><span class="o">.</span><span class="n">set_operator_filter</span><span class="p">(</span><span class="s2">&quot;UPDATE,DELETE&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="run.html" class="btn btn-neutral float-left" title="run.py" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="visualize.html" class="btn btn-neutral float-right" title="visualize.py" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2025, MTUCI. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

@@ -25,7 +25,19 @@ from logger_config import logger
 
 
 class SqlAst:
-    """Class for building AST of SQL queries."""
+    """Парсит SQL-код, строит AST и извлекает зависимости между таблицами/CTE.
+
+    Attributes:
+        corrections (List[str]): Корректировки и предупреждения (например, ["Error: syntax error"]).
+        dependencies (defaultdict): Граф зависимостей вида {target: {Edge(source, target, node)}}.
+        table_schema (Dict[str, Dict]): Схемы таблиц из CREATE-запросов (например, {"users": {"id": "INT"}}).
+        recursive_ctes (Set[str]): Множество рекурсивных CTE (например, {"cte1"}).
+
+    Example:
+        >>> ast = SqlAst("SELECT * FROM users")
+        >>> ast.get_dependencies()
+        defaultdict(<class 'set'>, {'result_0': {Edge('users', 'result_0', ...)}})
+    """
 
     _input_id = 0
     _output_id = 0
@@ -35,6 +47,15 @@ class SqlAst:
     _cte_id = 0  # Counter for CTE nodes
 
     def __init__(self, sql_code: str, sep_parse: bool = False):
+        """Инициализирует парсер SQL и запускает анализ кода.
+
+        Args:
+            sql_code (str): SQL-код для анализа.
+            sep_parse (bool): Если True, использует отдельные счетчики для каждого экземпляра.
+
+        Raises:
+            Exception: Если возникает ошибка при парсинге SQL.
+        """
         if not sql_code or not isinstance(sql_code, str):
             self.corrected_sql = ""
             self.corrections = ["Invalid input: Not a valid SQL string"]
@@ -80,7 +101,11 @@ class SqlAst:
             self.corrections.append(f"Error parsing SQL: {str(e)}")
 
     def _extract_schema_info(self):
-        """Extract table schema information from CREATE statements."""
+        """Извлекает схемы таблиц из CREATE-запросов.
+
+        Заполняет атрибут `table_schema` данными о колонках, их типах и ограничениях.
+        """
+
         for statement in self.parsed:
             if isinstance(statement, Create) and statement.args.get("kind") == "TABLE":
                 table_name = self.get_table_name(statement.args.get("this"))
@@ -104,7 +129,7 @@ class SqlAst:
                 logger.debug(f"Extracted schema for table %s: %s", table_name, columns)
 
     def _identify_all_ctes(self):
-        """First pass to identify all CTEs in the SQL code."""
+        """Идентифицирует все CTE в SQL-коде, включая рекурсивные."""
         for statement in self.parsed:
             # Handle direct WITH statements
             if isinstance(statement, With):
@@ -132,7 +157,11 @@ class SqlAst:
                 logger.debug("Marked CTEs in WITH RECURSIVE as recursive.")
 
     def _register_ctes_from_with(self, with_statement):
-        """Register CTEs from a WITH clause."""
+        """Регистрирует CTE из WITH-выражения.
+
+        Args:
+            with_statement (With): Узел AST, представляющий WITH-выражение.
+        """
         if "expressions" not in with_statement.args:
             return
 
@@ -145,7 +174,12 @@ class SqlAst:
                 self._find_cte_references(cte_name, cte.args["this"])
 
     def _find_cte_references(self, cte_name, expression):
-        """Find references to other CTEs within a CTE expression."""
+        """Находит ссылки на другие CTE внутри CTE-выражения.
+
+        Args:
+            cte_name (str): Имя текущего CTE.
+            expression (Expression): Выражение CTE для анализа.
+        """
         if expression is None:
             return
 
@@ -161,7 +195,11 @@ class SqlAst:
                         self.recursive_ctes.add(cte_name)
 
     def _mark_ctes_as_recursive(self, statement):
-        """Mark CTEs as recursive when WITH RECURSIVE is used."""
+        """Помечает CTE как рекурсивные при явном объявлении WITH RECURSIVE.
+
+        Args:
+            statement: Узел AST WITH-выражения или родительского узла.
+        """
         ctes = []
         if isinstance(statement, With):
             ctes = statement.args.get("expressions", [])
@@ -175,7 +213,7 @@ class SqlAst:
                 self.recursive_ctes.add(cte_name)
 
     def _detect_recursive_ctes(self):
-        """Detect recursion in CTEs by analyzing dependencies."""
+        """Обнаруживает рекурсивные CTE через анализ зависимостей."""
         # Check direct recursion (self-reference)
         for cte_name, cte_node in self.cte_definitions.items():
             # Walk the CTE expression to find self-references
@@ -216,7 +254,11 @@ class SqlAst:
                 dfs(cte_name)
 
     def _extract_dependencies(self) -> defaultdict:
-        """Extracts dependencies between tables and operations including ETL, SELECT and JOIN queries."""
+        """Извлекает зависимости между таблицами из SQL-операций.
+
+        Returns:
+            defaultdict: Словарь зависимостей в формате {target_table: {edges}}.
+        """
         dependencies = defaultdict(set)
         etl_types = (Insert, Update, Delete, Merge)
 
@@ -270,6 +312,36 @@ class SqlAst:
                 # For regular SELECT statements without an explicit target
                 else:
                     to_table = f"result {self._get_output_id()}"
+                if isinstance(statement, Delete):
+                    # Process the table being deleted from
+                    if "this" in statement.args and statement.args["this"] is not None:
+                        from_table = self.get_table_name(statement.args["this"])
+                        # Add dependency from the source table to the target
+                        dependencies[to_table].add(
+                            Edge(from_table, to_table, statement)
+                        )
+
+                    # Process WHERE conditions in DELETE statements
+                    if (
+                        "where" in statement.args
+                        and statement.args["where"] is not None
+                    ):
+                        self._extract_table_dependencies(
+                            statement.args["where"], to_table, dependencies
+                        )
+
+                    # Check for USING clause in DELETE (some dialects support this)
+                    if (
+                        "using" in statement.args
+                        and statement.args["using"] is not None
+                    ):
+                        using_tables = self._extract_using_tables(
+                            statement.args["using"]
+                        )
+                        for using_table in using_tables:
+                            dependencies[to_table].add(
+                                Edge(using_table, to_table, statement)
+                            )
 
                 # Handle INSERT statements specifically
                 if isinstance(statement, Insert):
@@ -303,7 +375,11 @@ class SqlAst:
         return dependencies
 
     def _process_all_ctes(self, dependencies):
-        """Process all CTEs to establish their dependencies."""
+        """Обрабатывает все CTE для построения зависимостей.
+
+        Args:
+            dependencies: Граф зависимостей для заполнения.
+        """
         for cte_name, cte_node in self.cte_definitions.items():
             cte_definition = cte_node.args["this"]
             # Process the CTE query expression
@@ -317,7 +393,13 @@ class SqlAst:
                 dependencies[cte_name].add(recursive_edge)
 
     def _process_with_statement(self, statement, to_table, dependencies):
-        """Process a WITH statement or a statement containing a WITH clause."""
+        """Обрабатывает WITH-конструкции и их связь с основным запросом.
+
+        Args:
+            statement: Узел WITH или родительский узел.
+            to_table: Целевая таблица основного запроса.
+            dependencies: Граф зависимостей для заполнения.
+        """
         with_clause = (
             statement if isinstance(statement, With) else statement.args["with"]
         )
@@ -339,108 +421,105 @@ class SqlAst:
                             cte_edge = Edge(cte_name, to_table, main_query)
                             dependencies[to_table].add(cte_edge)
 
-    def _process_statement_tree(
-        self, initial_statement, initial_to_table, dependencies
-    ):
-        """Итеративно обрабатывает запрос и его подзапросы для извлечения зависимостей."""
+    def _process_statement_tree(self, statement, to_table, dependencies):
+        """Рекурсивно обрабатывает узлы AST для извлечения зависимостей.
+
+        Args:
+            statement: Корневой узел для обработки.
+            to_table: Целевая таблица текущего запроса.
+            dependencies: Граф зависимостей для заполнения.
+        """
         try:
-            # Инициализируем стек задач с начальным запросом
-            stack = [(initial_statement, initial_to_table)]
+            # Skip if statement is None
+            if statement is None:
+                return
 
-            # Пока в стеке есть задачи, обрабатываем их
-            while stack:
-                # Извлекаем текущую задачу из стека
-                statement, to_table = stack.pop()
+            # Handle references to CTEs
+            self._handle_cte_references(statement, to_table, dependencies)
 
-                # Пропускаем, если запрос пустой
-                if statement is None:
-                    continue
+            # Process the main FROM table
+            if "from" in statement.args and statement.args["from"] is not None:
+                from_table = self.get_table_name(statement.args["from"])
+                # Add dependency from main table to result
+                if isinstance(statement, Select):
+                    dependencies[to_table].add(Edge(from_table, to_table, statement))
+                else:
+                    # For data modification operations (DML)
+                    dependencies[to_table].add(Edge(from_table, to_table, statement))
 
-                # Обрабатываем ссылки на CTE (Common Table Expressions)
-                self._handle_cte_references(statement, to_table, dependencies)
+            # Process MERGE operations
+            if isinstance(statement, Merge):
+                # USING defines the source table
+                if "using" in statement.args and statement.args["using"]:
+                    using_table = self.get_table_name(statement.args["using"])
+                    dependencies[to_table].add(Edge(using_table, to_table, statement))
 
-                # Обрабатываем основную таблицу в FROM
-                if "from" in statement.args and statement.args["from"] is not None:
-                    from_table = self.get_table_name(statement.args["from"])
-                    if isinstance(statement, Select):
-                        dependencies[to_table].add(
-                            Edge(from_table, to_table, statement)
-                        )
-                    else:
-                        dependencies[to_table].add(
-                            Edge(from_table, to_table, statement)
-                        )
-
-                # Обрабатываем операции MERGE
-                if isinstance(statement, Merge):
-                    if "using" in statement.args and statement.args["using"]:
-                        using_table = self.get_table_name(statement.args["using"])
-                        dependencies[to_table].add(
-                            Edge(using_table, to_table, statement)
-                        )
-                    if "on" in statement.args and statement.args["on"]:
-                        self._extract_table_dependencies(
-                            statement.args["on"], to_table, dependencies
-                        )
-                    if "expressions" in statement.args:
-                        for expr in statement.args["expressions"]:
-                            self._extract_table_dependencies(
-                                expr, to_table, dependencies
-                            )
-
-                # Обрабатываем JOIN'ы
-                if "joins" in statement.args and statement.args["joins"]:
-                    for join_node in statement.args["joins"]:
-                        if "this" in join_node.args:
-                            join_table = self.get_table_name(join_node.args["this"])
-                            dependencies[to_table].add(
-                                Edge(join_table, to_table, join_node)
-                            )
-                            if "on" in join_node.args and join_node.args["on"]:
-                                self._extract_table_dependencies(
-                                    join_node.args["on"], to_table, dependencies
-                                )
-
-                # Обрабатываем выражения в UPDATE
-                if isinstance(statement, Update) and "set" in statement.args:
-                    for set_item in statement.args["set"]:
-                        if "expression" in set_item.args:
-                            self._extract_table_dependencies(
-                                set_item.args["expression"], to_table, dependencies
-                            )
-
-                # Обрабатываем WHERE
-                if "where" in statement.args and statement.args["where"] is not None:
+                # Check merge conditions
+                if "on" in statement.args and statement.args["on"]:
                     self._extract_table_dependencies(
-                        statement.args["where"], to_table, dependencies
+                        statement.args["on"], to_table, dependencies
                     )
 
-                # Обрабатываем GROUP BY, HAVING и ORDER BY
-                for clause_type in ["group", "having", "order"]:
-                    if clause_type in statement.args and statement.args[clause_type]:
-                        self._extract_table_dependencies(
-                            statement.args[clause_type], to_table, dependencies
-                        )
-
-                # Обрабатываем список выражений в SELECT
-                if "expressions" in statement.args and isinstance(statement, Select):
+                # Check additional conditions
+                if "expressions" in statement.args:
                     for expr in statement.args["expressions"]:
                         self._extract_table_dependencies(expr, to_table, dependencies)
 
-                # Добавляем подзапросы в стек вместо рекурсивного вызова
-                for key, value in statement.args.items():
-                    if isinstance(value, (Select, Subquery)):
-                        stack.append((value, to_table))
-                    elif isinstance(value, list):
-                        for item in value:
-                            if isinstance(item, (Select, Subquery)):
-                                stack.append((item, to_table))
+            # Process JOINs in any queries
+            if "joins" in statement.args and statement.args["joins"]:
+                for join_node in statement.args["joins"]:
+                    if "this" in join_node.args:
+                        join_table = self.get_table_name(join_node.args["this"])
+
+                        # Create JOIN object for the graph
+                        dependencies[to_table].add(
+                            Edge(join_table, to_table, join_node)
+                        )
+
+                        # Also check for conditions in the JOIN that might reference other tables
+                        if "on" in join_node.args and join_node.args["on"]:
+                            self._extract_table_dependencies(
+                                join_node.args["on"], to_table, dependencies
+                            )
+
+            # Process expressions in UPDATE and INSERT queries
+            if isinstance(statement, Update) and "set" in statement.args:
+                # In UPDATE there may be hidden dependencies in SET expressions
+                for set_item in statement.args["set"]:
+                    if "expression" in set_item.args:
+                        self._extract_table_dependencies(
+                            set_item.args["expression"], to_table, dependencies
+                        )
+
+            # Process WHERE conditions, which may contain subqueries
+            if "where" in statement.args and statement.args["where"] is not None:
+                self._extract_table_dependencies(
+                    statement.args["where"], to_table, dependencies
+                )
+
+            # Process GROUP BY, HAVING, and ORDER BY clauses which may contain subqueries
+            for clause_type in ["group", "having", "order"]:
+                if clause_type in statement.args and statement.args[clause_type]:
+                    self._extract_table_dependencies(
+                        statement.args[clause_type], to_table, dependencies
+                    )
+
+            # Process SELECT list items for subqueries
+            if "expressions" in statement.args and isinstance(statement, Select):
+                for expr in statement.args["expressions"]:
+                    self._extract_table_dependencies(expr, to_table, dependencies)
 
         except Exception as e:
-            logger.error(f"Ошибка при обработке дерева запросов: {e}")
+            print(f"Error processing statement tree: {e}")
 
     def _handle_cte_references(self, statement, to_table, dependencies):
-        """Handle references to CTEs within a statement."""
+        """Обрабатывает ссылки на CTE в запросе.
+
+        Args:
+            statement: Узел AST для анализа.
+            to_table: Целевая таблица текущего запроса.
+            dependencies: Граф зависимостей для заполнения.
+        """
         try:
             # Look for all table references that might be CTEs
             for node in statement.walk():
@@ -465,7 +544,13 @@ class SqlAst:
             logger.error(f"Error handling CTE references: {e}")
 
     def _extract_table_dependencies(self, expression, to_table, dependencies):
-        """Extract dependencies from tables in an expression."""
+        """Извлекает зависимости из таблиц в выражениях.
+
+        Args:
+            expression: Узел AST для анализа (WHERE, JOIN и т.д.).
+            to_table: Целевая таблица.
+            dependencies: Граф зависимостей для заполнения.
+        """
         try:
             # Look for all subqueries within the expression
             for node in expression.walk():
@@ -495,7 +580,12 @@ class SqlAst:
             print(f"Error extracting table dependencies: {e}")
 
     def _extract_join_dependencies(self, select_statement, dependencies):
-        """Extract JOIN dependencies from a SELECT statement."""
+        """Обрабатывает JOIN-операции в SELECT-запросах.
+
+        Args:
+            select_statement: Узел SELECT-запроса.
+            dependencies: Граф зависимостей для заполнения.
+        """
         try:
             if "from" not in select_statement.args:
                 return
@@ -521,7 +611,12 @@ class SqlAst:
             print(f"Error extracting JOIN dependencies: {e}")
 
     def _find_nested_joins(self, expr, dependencies):
-        """Find nested JOIN operations within expressions."""
+        """Находит вложенные JOIN-операции в выражениях.
+
+        Args:
+            expr: Узел AST для анализа.
+            dependencies: Граф зависимостей для заполнения.
+        """
         try:
             for node in expr.walk():
                 if isinstance(node, Join):
@@ -537,7 +632,12 @@ class SqlAst:
             print(f"Error processing nested JOINs: {e}")
 
     def _process_join(self, join_node, dependencies):
-        """Process a single JOIN node and extract table dependencies."""
+        """Обрабатывает отдельный JOIN-узел.
+
+        Args:
+            join_node: Узел JOIN-операции.
+            dependencies: Граф зависимостей для заполнения.
+        """
         try:
             left_expr = join_node.args.get("this")
             right_expr = join_node.args.get("expression")
@@ -566,7 +666,14 @@ class SqlAst:
             print(f"Error processing JOIN: {e}")
 
     def _extract_table_name(self, expr):
-        """Helper method to extract table name from an expression."""
+        """Извлекает имя таблицы из узла AST.
+
+        Args:
+            expr: Узел AST, содержащий ссылку на таблицу.
+
+        Returns:
+            Имя таблицы или None, если не удалось извлечь.
+        """
         if expr is None:
             return None
 
@@ -591,21 +698,69 @@ class SqlAst:
         return tables[0] if tables else None
 
     def get_dependencies(self) -> defaultdict:
+        """Возвращает граф зависимостей между таблицами.
+
+        Returns:
+            defaultdict[set]: Граф в формате {целевая_таблица: {рёбра}}
+
+        Example:
+            >>> ast.get_dependencies()["orders"]
+            {Edge(source='customers', target='orders', expression=<Merge>)}
+
+        """
+
         return self.dependencies
 
     def get_corrections(self) -> List[str]:
+        """Возвращает список предупреждений и исправлений.
+
+        Returns:
+            List[str]: Список сообщений о проблемах.
+        """
         return self.corrections
 
     def get_table_schema(self) -> Dict[str, Dict[str, Dict]]:
-        """Return the extracted table schema information."""
+        """Возвращает схему таблиц из CREATE-запросов.
+
+        Returns:
+            Dict: Структура вида {'table': {'column': {'type': 'INT'}}}
+
+        Example:
+            >>> sql = "CREATE TABLE users (id INT, name VARCHAR(255))"
+            >>> ast = SqlAst(sql)
+            >>> ast.get_table_schema()
+            {'users': {'id': {'data_type': 'INT', ...}, 'name': {...}}}
+        """
         return self.table_schema
 
     def get_recursive_ctes(self) -> Set[str]:
-        """Return the set of recursive CTEs identified in the SQL."""
+        """Возвращает имена рекурсивных CTE.
+
+        Returns:
+            Set[str]: Множество имен. Пусто, если рекурсии нет.
+
+        Example:
+            >>> sql = "WITH RECURSIVE cte AS (SELECT * FROM cte)"
+            >>> ast = SqlAst(sql)
+            >>> ast.get_recursive_ctes()
+            {'cte'}
+        """
         return self.recursive_ctes
 
     def get_table_name(self, parsed) -> str:
-        """Enhanced method to extract table name, supporting aliases."""
+        """Извлекает имя таблицы из узла AST.
+
+        Args:
+            parsed (Expression): Узел AST, например, объект Table.
+
+        Returns:
+            str: Имя таблицы или "unknown_{id}". Пример: "users" или "unknown_1".
+
+        Example:
+            >>> table_node = sqlglot.parse_one("SELECT * FROM users").find(Table)
+            >>> ast.get_table_name(table_node)
+            'users'
+        """
         try:
             # If it's already a string, return it
             if isinstance(parsed, str):
@@ -644,7 +799,21 @@ class SqlAst:
             return f"unknown {self._get_unknown_id()}"
 
     def get_first_from(self, stmt) -> Optional[str]:
-        """Enhanced method to extract the first FROM table in a query."""
+        """Возвращает первую таблицу в FROM-клаузе.
+
+        Args:
+            stmt: Узел запроса (например, Select)
+
+        Returns:
+            Optional[str]: Имя таблицы или None
+
+        Example:
+            >>> sql = "SELECT * FROM orders JOIN customers"
+            >>> ast = SqlAst(sql)
+            >>> select_node = ast.parsed[0]
+            >>> ast.get_first_from(select_node)
+            'orders'
+        """
         try:
             # Check for FROM presence
             if "from" in stmt.args and stmt.args["from"] is not None:
@@ -667,7 +836,22 @@ class SqlAst:
         return None
 
     def find_all(self, expr_type, obj=None):
-        """Helper method to find all instances of a type within an expression tree."""
+        """Ищет все узлы указанного типа в AST.
+
+        Args:
+            expr_type: Тип узла (например, Join)
+            obj: Корневой узел для поиска
+
+        Returns:
+            List[Expression]: Найденные узлы
+
+        Example:
+            >>> sql = "SELECT * FROM a JOIN b WHERE c IN (SELECT d FROM e)"
+            >>> ast = SqlAst(sql)
+            >>> joins = ast.find_all(Join)
+            >>> len(joins)
+            1
+        """
         if obj is None:
             obj = self.parsed
         result = []
@@ -681,7 +865,17 @@ class SqlAst:
         return result
 
     def get_cyclic_dependencies(self) -> List[List[str]]:
-        """Identify cyclic dependencies in the SQL dependency graph."""
+        """Возвращает циклы в графе зависимостей.
+
+        Returns:
+            List[List[str]]: Список циклов
+
+        Example:
+            >>> sql = "CREATE TABLE a AS SELECT * FROM b; CREATE TABLE b AS SELECT * FROM a"
+            >>> ast = SqlAst(sql)
+            >>> ast.get_cyclic_dependencies()
+            [['a', 'b', 'a']]
+        """
         import networkx as nx
 
         # Create a directed graph from dependencies
@@ -729,14 +923,50 @@ class SqlAst:
 
 
 class DirectoryParser:
-    """Class for processing SQL files in a directory."""
+    """Обрабатывает SQL-файлы в директории и возвращает результаты анализа.
+
+    Attributes:
+        sql_ast_cls (Type[SqlAst]): Класс для анализа SQL (можно заменить на кастомный).
+
+    Example:
+        >>> parser = DirectoryParser()
+        >>> results = parser.parse_directory("/data/sql")
+        >>> results[0]  # (dependencies, corrections, "/data/sql/query.sql")
+    """
 
     def __init__(self, sql_ast_cls=SqlAst):
+        """Инициализирует парсер директорий.
+
+        Args:
+            sql_ast_cls (type): Класс для анализа SQL. Можно заменить на кастомную реализацию.
+        """
         self.sql_ast_cls = sql_ast_cls
 
     def parse_directory(
         self, directory: str, sep_parse: bool = False
     ) -> List[Tuple[defaultdict, List[str], str]]:
+        """Парсит все SQL-файлы в указанной директории.
+
+        Args:
+            directory (str): Путь к директории (например, "/data/sql").
+            sep_parse (bool): Передается в SqlAst.__init__().
+
+        Returns:
+            List[Tuple[defaultdict, List[str], str]:
+                Список кортежей: (зависимости, корректировки, путь_к_файлу).
+
+        Raises:
+            FileNotFoundError: Если директория не существует.
+
+        Example:
+            >>> parser = DirectoryParser()
+            >>> results = parser.parse_directory("./data/sql")
+            >>> file_path = results[0][2]
+            >>> isinstance(file_path, str)
+            True
+            >>> len(results[0][1])  # Количество корректировок
+            0
+        """
         results = []
         if not os.path.exists(directory):
             print(f"Error: Directory {directory} does not exist!")

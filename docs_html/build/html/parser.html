@@ -1,0 +1,418 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>parse.py &mdash; документация etl-addictions-graph </title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=372fde1a"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="run.py" href="run.html" />
+    <link rel="prev" title="manager.py" href="manager.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            etl-addictions-graph
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="files.html">Общее описание</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="files.html#id2">Базовый функционал</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="main.html">Основной модуль</a></li>
+<li class="toctree-l3"><a class="reference internal" href="util.html">Описание утилит</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loger.html">Логирование</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="base.html">Базовые модули</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="manager.html">manager.py</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">parse.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="run.html">run.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="storage.html">storage.py</a></li>
+<li class="toctree-l4"><a class="reference internal" href="visualize.html">visualize.py</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="files.html#id3">Режим-специфичный функционал</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sheme.html">Взаимодействие компонентов</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">etl-addictions-graph</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="files.html">Общее описание</a></li>
+          <li class="breadcrumb-item"><a href="base.html">Базовые модули</a></li>
+      <li class="breadcrumb-item active">parse.py</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/parser.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <section id="parse-py">
+<h1>parse.py<a class="headerlink" href="#parse-py" title="Ссылка на этот заголовок"></a></h1>
+<p>Анализ SQL-кода и извлечение зависимостей.</p>
+<dl class="py class" id="module-base.parse">
+<dt class="sig sig-object py" id="base.parse.DirectoryParser">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">base.parse.</span></span><span class="sig-name descname"><span class="pre">DirectoryParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sql_ast_cls=&lt;class</span> <span class="pre">'base.parse.SqlAst'&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#base.parse.DirectoryParser" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Обрабатывает SQL-файлы в директории и возвращает результаты анализа.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.parse.DirectoryParser.sql_ast_cls">
+<span class="sig-name descname"><span class="pre">sql_ast_cls</span></span><a class="headerlink" href="#base.parse.DirectoryParser.sql_ast_cls" title="Ссылка на это определение"></a></dt>
+<dd><p>Класс для анализа SQL (можно заменить на кастомный).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Type[<a class="reference internal" href="#base.parse.SqlAst" title="base.parse.SqlAst">SqlAst</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">parser</span> <span class="o">=</span> <span class="n">DirectoryParser</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_directory</span><span class="p">(</span><span class="s2">&quot;/data/sql&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># (dependencies, corrections, &quot;/data/sql/query.sql&quot;)</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="base.parse.DirectoryParser.parse_directory">
+<span class="sig-name descname"><span class="pre">parse_directory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep_parse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">defaultdict</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#base.parse.DirectoryParser.parse_directory" title="Ссылка на это определение"></a></dt>
+<dd><p>Парсит все SQL-файлы в указанной директории.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>directory</strong> (<em>str</em>) – Путь к директории (например, «/data/sql»).</p></li>
+<li><p><strong>sep_parse</strong> (<em>bool</em>) – Передается в SqlAst.__init__().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Список кортежей: (зависимости, корректировки, путь_к_файлу).</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[Tuple[defaultdict, List[str], str]</p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>FileNotFoundError</strong> – Если директория не существует.</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">parser</span> <span class="o">=</span> <span class="n">DirectoryParser</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">results</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_directory</span><span class="p">(</span><span class="s2">&quot;./data/sql&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">file_path</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">isinstance</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># Количество корректировок</span>
+<span class="go">0</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="base.parse.SqlAst">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">base.parse.</span></span><span class="sig-name descname"><span class="pre">SqlAst</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sql_code</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep_parse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#base.parse.SqlAst" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Парсит SQL-код, строит AST и извлекает зависимости между таблицами/CTE.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.parse.SqlAst.corrections">
+<span class="sig-name descname"><span class="pre">corrections</span></span><a class="headerlink" href="#base.parse.SqlAst.corrections" title="Ссылка на это определение"></a></dt>
+<dd><p>Корректировки и предупреждения (например, [«Error: syntax error»]).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.parse.SqlAst.dependencies">
+<span class="sig-name descname"><span class="pre">dependencies</span></span><a class="headerlink" href="#base.parse.SqlAst.dependencies" title="Ссылка на это определение"></a></dt>
+<dd><p>Граф зависимостей вида {target: {Edge(source, target, node)}}.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>defaultdict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.parse.SqlAst.table_schema">
+<span class="sig-name descname"><span class="pre">table_schema</span></span><a class="headerlink" href="#base.parse.SqlAst.table_schema" title="Ссылка на это определение"></a></dt>
+<dd><p>Схемы таблиц из CREATE-запросов (например, {«users»: {«id»: «INT»}}).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="base.parse.SqlAst.recursive_ctes">
+<span class="sig-name descname"><span class="pre">recursive_ctes</span></span><a class="headerlink" href="#base.parse.SqlAst.recursive_ctes" title="Ссылка на это определение"></a></dt>
+<dd><p>Множество рекурсивных CTE (например, {«cte1»}).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span> <span class="o">=</span> <span class="n">SqlAst</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM users&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span><span class="o">.</span><span class="n">get_dependencies</span><span class="p">()</span>
+<span class="go">defaultdict(&lt;class &#39;set&#39;&gt;, {&#39;result_0&#39;: {Edge(&#39;users&#39;, &#39;result_0&#39;, ...)}})</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="base.parse.SqlAst.find_all">
+<span class="sig-name descname"><span class="pre">find_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expr_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#base.parse.SqlAst.find_all" title="Ссылка на это определение"></a></dt>
+<dd><p>Ищет все узлы указанного типа в AST.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>expr_type</strong> – Тип узла (например, Join)</p></li>
+<li><p><strong>obj</strong> – Корневой узел для поиска</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Найденные узлы</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[Expression]</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM a JOIN b WHERE c IN (SELECT d FROM e)&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span> <span class="o">=</span> <span class="n">SqlAst</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">joins</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="n">Join</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">joins</span><span class="p">)</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="base.parse.SqlAst.get_corrections">
+<span class="sig-name descname"><span class="pre">get_corrections</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#base.parse.SqlAst.get_corrections" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает список предупреждений и исправлений.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Список сообщений о проблемах.</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="base.parse.SqlAst.get_cyclic_dependencies">
+<span class="sig-name descname"><span class="pre">get_cyclic_dependencies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#base.parse.SqlAst.get_cyclic_dependencies" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает циклы в графе зависимостей.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Список циклов</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[List[str]]</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;CREATE TABLE a AS SELECT * FROM b; CREATE TABLE b AS SELECT * FROM a&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span> <span class="o">=</span> <span class="n">SqlAst</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span><span class="o">.</span><span class="n">get_cyclic_dependencies</span><span class="p">()</span>
+<span class="go">[[&#39;a&#39;, &#39;b&#39;, &#39;a&#39;]]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="base.parse.SqlAst.get_dependencies">
+<span class="sig-name descname"><span class="pre">get_dependencies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">defaultdict</span></span></span><a class="headerlink" href="#base.parse.SqlAst.get_dependencies" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает граф зависимостей между таблицами.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Граф в формате {целевая_таблица: {рёбра}}</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>defaultdict[set]</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span><span class="o">.</span><span class="n">get_dependencies</span><span class="p">()[</span><span class="s2">&quot;orders&quot;</span><span class="p">]</span>
+<span class="go">{Edge(source=&#39;customers&#39;, target=&#39;orders&#39;, expression=&lt;Merge&gt;)}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="base.parse.SqlAst.get_first_from">
+<span class="sig-name descname"><span class="pre">get_first_from</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stmt</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#base.parse.SqlAst.get_first_from" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает первую таблицу в FROM-клаузе.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stmt</strong> – Узел запроса (например, Select)</p>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Имя таблицы или None</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM orders JOIN customers&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span> <span class="o">=</span> <span class="n">SqlAst</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">select_node</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">parsed</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span><span class="o">.</span><span class="n">get_first_from</span><span class="p">(</span><span class="n">select_node</span><span class="p">)</span>
+<span class="go">&#39;orders&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="base.parse.SqlAst.get_recursive_ctes">
+<span class="sig-name descname"><span class="pre">get_recursive_ctes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#base.parse.SqlAst.get_recursive_ctes" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает имена рекурсивных CTE.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Множество имен. Пусто, если рекурсии нет.</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>Set[str]</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;WITH RECURSIVE cte AS (SELECT * FROM cte)&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span> <span class="o">=</span> <span class="n">SqlAst</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span><span class="o">.</span><span class="n">get_recursive_ctes</span><span class="p">()</span>
+<span class="go">{&#39;cte&#39;}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="base.parse.SqlAst.get_table_name">
+<span class="sig-name descname"><span class="pre">get_table_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parsed</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#base.parse.SqlAst.get_table_name" title="Ссылка на это определение"></a></dt>
+<dd><p>Извлекает имя таблицы из узла AST.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parsed</strong> (<em>Expression</em>) – Узел AST, например, объект Table.</p>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Имя таблицы или «unknown_{id}». Пример: «users» или «unknown_1».</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">table_node</span> <span class="o">=</span> <span class="n">sqlglot</span><span class="o">.</span><span class="n">parse_one</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM users&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">Table</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span><span class="o">.</span><span class="n">get_table_name</span><span class="p">(</span><span class="n">table_node</span><span class="p">)</span>
+<span class="go">&#39;users&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="base.parse.SqlAst.get_table_schema">
+<span class="sig-name descname"><span class="pre">get_table_schema</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#base.parse.SqlAst.get_table_schema" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает схему таблиц из CREATE-запросов.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Структура вида {„table“: {„column“: {„type“: „INT“}}}</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict</p>
+</dd>
+</dl>
+<p class="rubric">Пример</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;CREATE TABLE users (id INT, name VARCHAR(255))&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span> <span class="o">=</span> <span class="n">SqlAst</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ast</span><span class="o">.</span><span class="n">get_table_schema</span><span class="p">()</span>
+<span class="go">{&#39;users&#39;: {&#39;id&#39;: {&#39;data_type&#39;: &#39;INT&#39;, ...}, &#39;name&#39;: {...}}}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="manager.html" class="btn btn-neutral float-left" title="manager.py" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="run.html" class="btn btn-neutral float-right" title="run.py" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2025, MTUCI. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,220 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Основной модуль &mdash; документация etl-addictions-graph </title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+
+
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=372fde1a"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="Описание утилит" href="util.html" />
+    <link rel="prev" title="Общее описание" href="files.html" />
+</head>
+
+<body class="wy-body-for-nav">
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+
+
+          <a href="index.html" class="icon icon-home">
+            etl-addictions-graph
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="files.html">Общее описание</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="files.html#id2">Базовый функционал</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Основной модуль</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#main.configure_logging"><code class="docutils literal notranslate"><span class="pre">configure_logging()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#main.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="util.html">Описание утилит</a></li>
+<li class="toctree-l3"><a class="reference internal" href="loger.html">Логирование</a></li>
+<li class="toctree-l3"><a class="reference internal" href="base.html">Базовые модули</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="files.html#id3">Режим-специфичный функционал</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sheme.html">Взаимодействие компонентов</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">etl-addictions-graph</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="files.html">Общее описание</a></li>
+      <li class="breadcrumb-item active">Основной модуль</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/main.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+
+  <section id="id1">
+<h1>Основной модуль<a class="headerlink" href="#id1" title="Ссылка на этот заголовок"></a></h1>
+<p>Основной модуль приложения для анализа SQL-зависимостей.</p>
+<dl class="simple">
+<dt>Обеспечивает:</dt><dd><ul class="simple">
+<li><p>Точку входа в программу (функция main())</p></li>
+<li><p>Управление логированием</p></li>
+<li><p>Маршрутизацию выполнения по режимам работы</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py function" id="module-main">
+<dt class="sig sig-object py" id="main.configure_logging">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">configure_logging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#main.configure_logging" title="Ссылка на это определение"></a></dt>
+<dd><p>Настраивает глобальный логгер в соответствии с выбранным режимом.</p>
+<dl class="simple">
+<dt>Управляет обработчиками вывода:</dt><dd><ul class="simple">
+<li><p>Добавляет/удаляет консольные и файловые обработчики</p></li>
+<li><p>Устанавливает уровни логирования для каждого обработчика</p></li>
+<li><p>Форматирует сообщения</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mode</strong> (<em>str</em>) – Режим логирования.
+- «normal»: Консоль (INFO+), файл (DEBUG+)
+- «quiet»: Только файл (DEBUG+)
+- «error»: Консоль (ERROR+), файл (DEBUG+)</p></li>
+<li><p><strong>log_file</strong> (<em>str</em><em>, </em><em>optional</em>) – Путь к файлу для логирования. Если не указан, используется «app.log».</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Исключение<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>PermissionError</strong> – При отсутствии прав на запись в файл</p></li>
+<li><p><strong>OSError</strong> – При проблемах с созданием файла</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Примеры</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">configure_logging</span><span class="p">(</span><span class="s2">&quot;normal&quot;</span><span class="p">,</span> <span class="s2">&quot;application.log&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">configure_logging</span><span class="p">(</span><span class="s2">&quot;quiet&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">Заметки</p>
+<ul class="simple">
+<li><p>Формат сообщений: «%Y-%m-%d %H:%M:%S [LEVEL] NAME: MESSAGE»</p></li>
+<li><p>Файловый обработчик создается только при необходимости</p></li>
+<li><p>Существующие обработчики перезаписываются</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="main.main">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#main.main" title="Ссылка на это определение"></a></dt>
+<dd><p>Основная точка входа в приложение.</p>
+<dl class="simple">
+<dt>Выполняет последовательность:</dt><dd><ol class="arabic simple">
+<li><p>Инициализация логгера</p></li>
+<li><p>Парсинг аргументов командной строки</p></li>
+<li><p>Запуск соответствующего модуля обработки</p></li>
+<li><p>Обработка ошибок режима выполнения</p></li>
+</ol>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>None</p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>SystemExit</strong> – При указании неверного режима работы</p>
+</dd>
+</dl>
+<p class="rubric">Примеры</p>
+<p>Запуск из командной строки:
+&gt;&gt;&gt; python main.py –mode functional –sql_code «SELECT * FROM table»</p>
+<p class="rubric">Заметки</p>
+<ul class="simple">
+<li><p>Зависит от модулей table.run, field.run, func.run</p></li>
+<li><p>Использует глобальный логгер «dependency_graph»</p></li>
+<li><dl class="simple">
+<dt>Коды завершения:</dt><dd><ul>
+<li><p>0: Успешное выполнение</p></li>
+<li><p>1: Ошибка в режиме работы</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="files.html" class="btn btn-neutral float-left" title="Общее описание" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="util.html" class="btn btn-neutral float-right" title="Описание утилит" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2025, MTUCI. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+</body>
+</html>
