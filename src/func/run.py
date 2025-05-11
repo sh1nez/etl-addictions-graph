@@ -28,18 +28,8 @@ def process_args(args):
         else f"  SQL code: {args.sql_code}"
     )
     print(f"  Separate graphs: {args.separate_graph}")
-
-    run()
-
-
-def main():
-    """Main entry point for script execution.
-
-    Designed to be invoked when running the module directly.
-    Executes the core application logic by calling the buff_tables module's run() function.
-
-    Example:
-        >>> python -m run
-    """
-
-    run()
+    run(
+        directory=args.directory_path,
+        sql_code=args.sql_code,
+        separate_graph=args.separate_graph,
+    )
