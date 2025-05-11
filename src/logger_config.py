@@ -20,11 +20,40 @@ logger.propagate = False  # не подниматься к root
 
 
 def setup_logger(mode: str = "normal"):
-    """
-    Перестраивает хендлеры логгера:
-      - normal      — console INFO+, file DEBUG+
-      - quiet       — no console, file DEBUG+
-      - errors_only — console ERROR+, file DEBUG+
+    """Настраивает обработчики логирования в зависимости от выбранного режима.
+
+    Полностью переконфигурирует логгер:
+        - Удаляет существующие обработчики
+        - Создает новые обработчики для файла и консоли
+        - Настраивает уровни логирования и форматы вывода
+
+    Args:
+        mode (str): Режим логирования.
+            Допустимые значения:
+                - "normal":      Консоль (INFO+), файл (DEBUG+)
+                - "quiet":       Только файл (DEBUG+)
+                - "errors_only": Консоль (ERROR+), файл (DEBUG+)
+                - "debug":       Консоль (DEBUG+), файл (DEBUG+)
+
+    Returns:
+        None
+
+    Raises:
+        PermissionError: Если нет прав на запись в лог-директорию
+        OSError: При проблемах с созданием файлового обработчика
+
+    Examples:
+        >>> setup_logger(mode="normal")  # Стандартный режим
+        >>> setup_logger(mode="debug")   # Подробное логирование
+
+    Notes:
+        - Формат логов: [LEVEL] YYYY-MM-DD HH:MM:SS - NAME - MESSAGE
+        - Файловый обработчик:
+            * Ротация при достижении 5 МБ
+            * Хранится до 3 резервных копий
+            * Кодировка UTF-8
+        - Консольный вывод направляется в sys.stdout
+        - Лог-файл сохраняется в {LOG_DIR}/{LOG_FILE}
     """
     # Удаляем и закрываем все старые хендлеры
     for h in logger.handlers[:]:

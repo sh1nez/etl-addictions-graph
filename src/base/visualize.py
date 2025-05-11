@@ -7,7 +7,16 @@ from logger_config import logger
 
 
 class GraphVisualizer:
-    """Class for visualizing dependency graphs."""
+    """Визуализирует графы зависимостей на основе данных из GraphStorage.
+
+    Attributes:
+        Нет публичных атрибутов. Все параметры передаются в метод render.
+
+    Example:
+        >>> storage = GraphStorage()
+        >>> visualizer = GraphVisualizer()
+        >>> visualizer.render(storage, title="Пример графа", save_path="graph.png")
+    """
 
     def render(
         self,
@@ -19,6 +28,30 @@ class GraphVisualizer:
         central_spread: float = 2.0,
         peripheral_spread: float = 1.5,
     ):
+        """Визуализирует граф зависимостей и отображает/сохраняет результат.
+
+        Args:
+            storage (GraphStorage): Хранилище с данными графа.
+            title (str, optional): Заголовок графа. По умолчанию None.
+            save_path (str, optional): Путь для сохранения изображения. Пример: "output/graph.png".
+            figsize (tuple): Размер холста в дюймах. По умолчанию (20, 16).
+            seed (int, optional): Seed для воспроизводимости расположения узлов.
+            central_spread (float): Коэффициент расстояния между центральными узлами.
+            peripheral_spread (float): Коэффициент расстояния для периферийных узлов.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: Если передан пустой storage.
+
+        Example:
+            >>> # Базовая визуализация
+            >>> visualizer.render(storage)
+
+            >>> # Кастомизация параметров
+            >>> visualizer.render(storage, title="Data Pipeline", save_path="pipeline.png", figsize=(15, 10), seed=123, central_spread=3.0)
+        """
         if not storage.nodes:
             logger.warning("Graph is empty, no dependencies to display")
             return

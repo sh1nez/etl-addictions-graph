@@ -7,7 +7,42 @@ from logger_config import logger  # Добавляем импорт логгер
 
 
 def process_args(args):
-    """Processing command line arguments for table mode"""
+    """Обрабатывает аргументы командной строки и запускает анализ SQL-зависимостей.
+
+    Основные сценарии:
+        1. Обработка SQL-кода из командной строки
+        2. Обработка SQL-файлов в директории (единый граф или раздельные)
+
+    Args:
+        args:Объект с аргументами командной строки.
+
+            Ожидаемые атрибуты:
+                - sql_code (str): SQL-запрос для анализа
+                - directory_path (str): Путь к директории с SQL-файлами
+                - operators (List[str]): Фильтр операторов для зависимостей
+                - separate_graph (str): "True"/"False" - раздельная визуализация файлов
+
+    Returns:
+        None
+
+    Example:
+        >>> #Обработка SQL-запроса
+        >>> args.sql_code = "SELECT * FROM table"
+        >>> process_args(args)
+
+        >>> #Обработка директории с объединенным графом
+        >>> args.directory_path = "./sql_scripts"
+        >>> args.separate_graph = "False"
+        >>> process_args(args)
+
+    Raises:
+        FileNotFoundError: Если передан несуществующий путь к директории
+        ValueError: Если не указаны sql_code или directory_path
+
+    Логирование:
+        - INFO: Выводит список корректировок SQL
+        - DEBUG: Детали обработки файлов
+    """
     manager = GraphManager(operators=args.operators)
     separate = args.separate_graph.lower() == "true"
 

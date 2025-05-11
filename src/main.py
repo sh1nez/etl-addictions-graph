@@ -10,11 +10,35 @@ from logger_config import logger, setup_logger
 
 
 def configure_logging(mode: str, log_file: str = None):  # перенести по умолчанию
-    """
-    Configure the global logger based on the selected mode:
-      - normal: console INFO+, file DEBUG+ (if file handler present)
-      - quiet: no console output, file DEBUG+
-      - error: console ERROR+, file DEBUG+
+    """Настраивает глобальный логгер в соответствии с выбранным режимом.
+
+    Управляет обработчиками вывода:
+        - Добавляет/удаляет консольные и файловые обработчики
+        - Устанавливает уровни логирования для каждого обработчика
+        - Форматирует сообщения
+
+    Args:
+        mode (str): Режим логирования.
+            - "normal": Консоль (INFO+), файл (DEBUG+)
+            - "quiet": Только файл (DEBUG+)
+            - "error": Консоль (ERROR+), файл (DEBUG+)
+        log_file (str, optional): Путь к файлу для логирования. Если не указан, используется "app.log".
+
+    Returns:
+        None
+
+    Raises:
+        PermissionError: При отсутствии прав на запись в файл
+        OSError: При проблемах с созданием файла
+
+    Examples:
+        >>> configure_logging("normal", "application.log")
+        >>> configure_logging("quiet")
+
+    Notes:
+        - Формат сообщений: "%Y-%m-%d %H:%M:%S [LEVEL] NAME: MESSAGE"
+        - Файловый обработчик создается только при необходимости
+        - Существующие обработчики перезаписываются
     """
     formatter = logging.Formatter(
         "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -46,6 +70,32 @@ def configure_logging(mode: str, log_file: str = None):  # перенести п
 
 
 def main():
+    """Основная точка входа в приложение.
+
+    Выполняет последовательность:
+        1. Инициализация логгера
+        2. Парсинг аргументов командной строки
+        3. Запуск соответствующего модуля обработки
+        4. Обработка ошибок режима выполнения
+
+    Returns:
+        None
+
+    Raises:
+        SystemExit: При указании неверного режима работы
+
+    Examples:
+        Запуск из командной строки:
+        >>> python main.py --mode functional --sql_code "SELECT * FROM table"
+
+    Notes:
+        - Зависит от модулей table.run, field.run, func.run
+        - Использует глобальный логгер "dependency_graph"
+        - Коды завершения:
+            * 0: Успешное выполнение
+            * 1: Ошибка в режиме работы
+    """
+
     # 1) выбор режима логирования
     setup_logger()
 
