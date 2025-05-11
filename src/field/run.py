@@ -5,7 +5,45 @@ from logger_config import logger
 
 
 def process_args(args):
-    """Processing command line arguments for field mode"""
+    """Обрабатывает аргументы командной строки для анализа зависимостей между колонками.
+
+    Основные сценарии:
+        - Обработка SQL-кода из командной строки
+        - Обработка SQL-файлов в директории:
+            - Создание отдельных графов для каждого файла
+            - Построение единого графа для всех файлов
+
+    Args:
+        args: Объект с аргументами командной строки.
+
+            Ожидаемые атрибуты:
+                - sql_code (str): SQL-запрос для анализа
+                - directory_path (str): Путь к директории с SQL-файлами
+                - operators (List[str]): Фильтр операторов (например, ["INSERT", "SELECT"])
+                - separate_graph (str): "True"/"False" - раздельная визуализация файлов
+
+    Returns:
+        None
+
+    Raises:
+        FileNotFoundError: Если директория не существует
+        ValueError: Если не указаны sql_code или directory_path
+
+    Example:
+        >>> # Анализ SQL-кода
+        >>> args.sql_code = "INSERT INTO users (id) VALUES (1)"
+        >>> process_args(args)
+
+        >>> # Анализ директории с раздельными графами
+        >>> args.directory_path = "./sql_scripts"
+        >>> args.separate_graph = "True"
+        >>> process_args(args)
+
+    Notes:
+        - Логирует корректировки SQL-кода через logger.info
+        - Использует ColumnStorage для хранения зависимостей колонок
+    """
+
     manager = GraphManager(column_mode=True, operators=args.operators)
     separate = args.separate_graph.lower() == "true"
     if args.sql_code:
