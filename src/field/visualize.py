@@ -123,7 +123,12 @@ class ColumnVisualizer(GraphVisualizer):
                 if columns_parsed is not None:
                     if columns_parsed[0] is not None and len(columns_parsed[0]) > 0:
                         info = "Columns "
-                        if ":" in columns_parsed[0][0]:
+                        if "JOIN" in columns_parsed[0][0]:
+                            info = "Joined\n  "
+                            columns_parsed[0][0] = columns_parsed[0][0].replace(
+                                "JOIN", ""
+                            )
+                        elif ":" in columns_parsed[0][0]:
                             info += "to:from\n  "
                         else:
                             info += "to\n  "
