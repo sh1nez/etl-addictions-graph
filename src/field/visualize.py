@@ -1,6 +1,7 @@
 import networkx as nx
 from typing import Optional
 from matplotlib import pyplot as plt
+import numpy as np
 from base.storage import GraphStorage
 from base.visualize import GraphVisualizer
 from logger_config import logger
@@ -29,16 +30,22 @@ class ColumnVisualizer(GraphVisualizer):
         self,
         storage: GraphStorage,
         title: Optional[str] = None,
-        output_path=None,
+        save_path=None,
         figsize: tuple = (20, 16),
-        sep: bool = False,
+        seed: Optional[int] = 42,
+        central_spread: float = 2.0,
+        peripheral_spread: float = 1.5,
     ):
         """Визуализирует граф зависимостей с возможностью интерактивного взаимодействия.
 
         Args:
             storage (GraphStorage): Хранилище с данными графа
             title (str, optional): Заголовок графа. По умолчанию None
-            output_path (str, optional): Путь для сохранения изображения. Пример: "output/graph.png"
+            save_path (str, optional): Путь для сохранения изображения. Пример: "output/graph.png"
+            figsize (tuple): Размер холста в дюймах. По умолчанию (20, 16).
+            seed (int, optional): Seed для воспроизводимости расположения узлов.
+            central_spread (float): Коэффициент расстояния между центральными узлами.
+            peripheral_spread (float): Коэффициент расстояния для периферийных узлов.
 
         Raises:
             RuntimeError: Если визуализация невозможна в текущем окружении
@@ -56,36 +63,90 @@ class ColumnVisualizer(GraphVisualizer):
               * ЛКМ по ребру -> отображение связанных колонок
               * Повторный клик -> скрытие подсказки
         """
-
-        if not storage.nodes:
-            logger.warning("Graph is empty, no dependencies to display")
-            return
-
-        edges = storage.edges
-        if self.LIMIT_SELFLOOPS:
-            edges = self._limit_self_loops(edges)
-        if self.LIMIT_MULTIEDGES:
-            edges = self._limit_connections(edges)
-        self.G = nx.MultiDiGraph()
-        self.G.add_nodes_from(storage.nodes)
-        self.G.add_edges_from(edges)
-        self.pos = nx.spring_layout(self.G, k=0.95, iterations=50)
-
         self.pressed = None
         self.last_uv = ()
         self.last_ann = None
         self.pressed_edge = None
         self.fig, self.ax = plt.subplots(figsize=figsize)
         self.fig.canvas.mpl_connect("pick_event", self._on_pick)
+        nodes, edges = storage.get_filtered_nodes_edges()
+
+        if not storage.nodes:
+            logger.warning("Graph is empty, no dependencies to display")
+            return
+
+        if self.LIMIT_SELFLOOPS:
+            edges = self._limit_self_loops(edges)
+        if self.LIMIT_MULTIEDGES:
+            edges = self._limit_connections(edges)
+        self.G = nx.MultiDiGraph()
+        self.G.add_nodes_from(nodes)
+        self.G.add_edges_from(edges)
+        logger.debug(
+            f"Created graph with {self.G.number_of_nodes()} nodes and {self.G.number_of_edges()} edges"
+        )
+
+        # Классификация узлов
+        central_nodes = [
+            n
+            for n in self.G.nodes()
+            if self.G.in_degree(n) > 0 and self.G.out_degree(n) > 0
+        ]
+        peripheral_nodes = [n for n in self.G.nodes() if n not in central_nodes]
+
+        logger.debug(
+            f"Central nodes: {len(central_nodes)}, Peripheral nodes: {len(peripheral_nodes)}"
+        )
+
+        # Обработка крайних случаев
+        if not central_nodes:
+            logger.warning("No central nodes found, using all nodes as central")
+            central_nodes = list(self.G.nodes())
+            peripheral_nodes = []
+            # added pos handling for no central nodes
+            self.pos = nx.spring_layout(self.G, k=0.2, iterations=50, seed=seed)
+        elif not peripheral_nodes:
+            logger.warning("No peripheral nodes found, using spring layout")
+            if seed is not None:
+                np.random.seed(seed)
+            self.pos = nx.spring_layout(self.G, k=0.2, iterations=150, seed=seed)
+        else:
+            # Начальное радиальное расположение
+            if seed is not None:
+                np.random.seed(seed)
+            self.pos = nx.shell_layout(self.G, nlist=[central_nodes, peripheral_nodes])
+
+            # Увеличение расстояния между центральными узлами
+            if len(central_nodes) > 1:
+                central_subgraph = self.G.subgraph(central_nodes)
+                central_pos = nx.spring_layout(
+                    central_subgraph,
+                    k=central_spread / np.sqrt(len(central_nodes)),
+                    iterations=50,
+                    seed=seed,
+                )
+                for node in central_nodes:
+                    self.pos[node] = central_pos[node]
+
+            # Увеличение расстояния между периферийными узлами
+            for node in peripheral_nodes:
+                x, y = self.pos[node]
+                norm = np.sqrt(x**2 + y**2)
+                if norm > 0:
+                    self.pos[node] = (x * peripheral_spread, y * peripheral_spread)
 
         # стиль рёбер
-        self.edge_colors = [
+        edge_colors = [
             data["color"] for u, v, k, data in self.G.edges(keys=True, data=True)
         ]
-        self.edge_style = [
-            data.get("style", "solid")
-            for u, v, k, data in self.G.edges(keys=True, data=True)
-        ]
+        # * Изначальные параметры Edge(is_internal_update, is_recursive) перестали
+        # * где-либо задаваться, поэтому комментарию. Когда-то is_internal_update
+        # * задавался при парсинге внутрренних Update, а is_recursive=False
+        # edge_style = [
+        #     data.get("style", "solid")
+        #     for u, v, k, data in self.G.edges(keys=True, data=True)
+        # ]
+        node_sizes = [1200 if n in central_nodes else 800 for n in self.G.nodes()]
         # отрисовка операций(подписей рёбер)
         edge_labels = {
             (u, v, k): d["operation"]
@@ -99,12 +160,12 @@ class ColumnVisualizer(GraphVisualizer):
             ax=self.ax,
             with_labels=False,
             node_color="lightblue",
-            edge_color=self.edge_colors,
-            node_size=2000,
+            edge_color=edge_colors,
+            node_size=node_sizes,
             arrows=True,
             arrowsize=15,
             connectionstyle=self.connectionstyle,
-            style=self.edge_style,
+            # style=edge_style,
         )
 
         self.edge_label_texts = nx.draw_networkx_edge_labels(
@@ -143,9 +204,9 @@ class ColumnVisualizer(GraphVisualizer):
         plt.axis("off")
 
         # Save or show
-        if output_path:
-            plt.savefig(output_path, format="png", dpi=300, bbox_inches="tight")
-            logger.info(f"Graph saved to {output_path}")
+        if save_path:
+            plt.savefig(save_path, format="png", dpi=300, bbox_inches="tight")
+            logger.info(f"Graph saved to {save_path}")
         else:
             plt.tight_layout()
             plt.show()

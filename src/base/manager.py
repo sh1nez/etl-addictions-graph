@@ -88,13 +88,10 @@ class GraphManager:
         Example:
             >>> manager.visualize(title="Data Pipeline")
         """
-        sep = False
         if storage is None:
             storage = self.storage
-        else:
-            sep = True
         try:
-            self.visualizer.render(storage, title, sep=sep)
+            self.visualizer.render(storage, title)
         except Exception as e:
             logger.error(
                 f"Error visualizing graph: {e}\nYou may need to run this in an environment that supports matplotlib display."

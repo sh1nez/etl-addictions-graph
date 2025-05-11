@@ -63,7 +63,6 @@ class GraphVisualizer:
         seed: Optional[int] = 42,
         central_spread: float = 2.0,
         peripheral_spread: float = 1.5,
-        sep: bool = False,
     ):
         """Визуализирует граф зависимостей и отображает/сохраняет результат.
 
@@ -75,7 +74,6 @@ class GraphVisualizer:
             seed (int, optional): Seed для воспроизводимости расположения узлов.
             central_spread (float): Коэффициент расстояния между центральными узлами.
             peripheral_spread (float): Коэффициент расстояния для периферийных узлов.
-            sep (bool): Для сброса вывода при выводе нескольких графов. По умолчанию False.
 
         Returns:
             None
@@ -90,17 +88,21 @@ class GraphVisualizer:
             >>> # Кастомизация параметров
             >>> visualizer.render(storage, title="Data Pipeline", save_path="pipeline.png", figsize=(15, 10), seed=123, central_spread=3.0)
         """
+        self.pressed = None
+        self.fig, self.ax = plt.subplots(figsize=figsize)
+        self.fig.canvas.mpl_connect("pick_event", self._on_pick)
+        nodes, edges = storage.get_filtered_nodes_edges()
+
         if not storage.nodes:
             logger.warning("Graph is empty, no dependencies to display")
             return
-        edges = storage.edges
-        print(f"Edges: {edges}")
+
         if self.LIMIT_SELFLOOPS:
             edges = self._limit_self_loops(edges)
         if self.LIMIT_MULTIEDGES:
             edges = self._limit_connections(edges)
         self.G = nx.MultiDiGraph()
-        self.G.add_nodes_from(storage.nodes)
+        self.G.add_nodes_from(nodes)
         self.G.add_edges_from(edges)
         logger.debug(
             f"Created graph with {self.G.number_of_nodes()} nodes and {self.G.number_of_edges()} edges"
@@ -114,7 +116,6 @@ class GraphVisualizer:
         ]
         peripheral_nodes = [n for n in self.G.nodes() if n not in central_nodes]
 
-        # Логирование классификации
         logger.debug(
             f"Central nodes: {len(central_nodes)}, Peripheral nodes: {len(peripheral_nodes)}"
         )
@@ -124,6 +125,8 @@ class GraphVisualizer:
             logger.warning("No central nodes found, using all nodes as central")
             central_nodes = list(self.G.nodes())
             peripheral_nodes = []
+            # added pos handling for no central nodes
+            self.pos = nx.spring_layout(self.G, k=0.2, iterations=50, seed=seed)
         elif not peripheral_nodes:
             logger.warning("No peripheral nodes found, using spring layout")
             if seed is not None:
@@ -154,18 +157,17 @@ class GraphVisualizer:
                 if norm > 0:
                     self.pos[node] = (x * peripheral_spread, y * peripheral_spread)
 
-        self.pressed = None
-        self.fig, self.ax = plt.subplots(figsize=figsize)
-        self.fig.canvas.mpl_connect("pick_event", self._on_pick)
-
         # настройка визуальных параметров
         edge_colors = [
             data["color"] for u, v, k, data in self.G.edges(keys=True, data=True)
         ]
-        edge_style = [
-            data.get("style", "solid")
-            for u, v, k, data in self.G.edges(keys=True, data=True)
-        ]
+        # * Изначальные параметры Edge(is_internal_update, is_recursive) перестали
+        # * где-либо задаваться, поэтому комментарию. Когда-то is_internal_update
+        # * задавался при парсинге внутрренних Update, а is_recursive=False
+        # edge_style = [
+        #     data.get("style", "solid")
+        #     for u, v, k, data in self.G.edges(keys=True, data=True)
+        # ]
         node_sizes = [1200 if n in central_nodes else 800 for n in self.G.nodes()]
         # отрисовка операций(подписей рёбер)
         edge_labels = {
@@ -181,12 +183,12 @@ class GraphVisualizer:
             with_labels=False,
             node_color="lightblue",
             edge_color=edge_colors,
-            node_size=2000,
+            node_size=node_sizes,
             arrows=True,
             arrowstyle="->",
             arrowsize=15,
             connectionstyle=self.connectionstyle,
-            style=edge_style,
+            # style=edge_style,
         )
 
         self.edge_label_texts = nx.draw_networkx_edge_labels(

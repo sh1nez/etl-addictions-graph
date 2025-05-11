@@ -39,25 +39,6 @@ def print_ifnt_str(func):
     return wrapper
 
 
-# def print_ifnt_str(func):  # * for testing
-#     """Декоратор для логирования входных и выходных данных функций (только для отладки).
-#
-#     Args:
-#         func: Оборачиваемая функция
-#
-#     Returns:
-#         Обёрнутая функция с логированием.
-#     """
-#     def wrapper(*args, **kwargs):
-#         result = func(*args, **kwargs)
-#         if not isinstance(result, str):
-#             logger.debug(f"INPUT: {args[0]}")
-#             logger.debug(f"OUTPUT: {result}")
-#         return result
-#
-#     return wrapper
-
-
 @print_ifnt_str
 def parse_columns(op: Expression) -> Tuple[Optional[List[str]], Optional[List[str]]]:
     #: :meta member:
