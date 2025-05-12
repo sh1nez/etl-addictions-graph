@@ -8,7 +8,16 @@ from logger_config import logger
 
 
 class ColumnVisualizer(GraphVisualizer):
-    """Class for visualizing dependency graphs in column mode."""
+    """Визуализатор графов зависимостей между колонками таблиц.
+
+    Наследует функциональность GraphVisualizer и добавляет:
+        - Интерактивное отображение информации о колонках при клике
+        - Расширенную стилизацию для операций с колонками
+        - Автоматическое определение стилей соединений для мультиграфов
+
+    Attributes:
+        Наследует все атрибуты GraphVisualizer
+    """
 
     def render(
         self,
@@ -22,6 +31,30 @@ class ColumnVisualizer(GraphVisualizer):
         transform_node_color: str = "lightcoral",
         mode: Optional[str] = "full",
     ):
+        """Визуализирует граф зависимостей с возможностью интерактивного взаимодействия.
+
+        Args:
+            storage (GraphStorage): Хранилище с данными графа
+            title (str, optional): Заголовок графа. По умолчанию None
+            output_path (str, optional): Путь для сохранения изображения. Пример: "output/graph.png"
+
+        Raises:
+            RuntimeError: Если визуализация невозможна в текущем окружении
+            ValueError: При передаче некорректных данных
+
+        Example:
+            >>> storage = ColumnStorage()
+            >>> visualizer = ColumnVisualizer()
+            >>> visualizer.render(storage, title="User Columns", output_path="graph.png")
+
+        Особенности реализации:
+            - Использует spring_layout с параметрами k=0.5 и iterations=50
+            - Поддерживает до 10 соединений между узлами с автоматическим смещением
+            - Реализует интерактивные подсказки с информацией о колонках:
+              * ЛКМ по ребру -> отображение связанных колонок
+              * Повторный клик -> скрытие подсказки
+        """
+
         if not storage.nodes:
             logger.warning("Graph is empty, no dependencies to display")
             return
