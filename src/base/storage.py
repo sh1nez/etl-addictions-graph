@@ -88,7 +88,7 @@ class GraphStorage:
         for to_table, edges in dependencies.items():
             self.nodes.add(to_table)
             for edge in edges:
-                self.nodes.add(edge.from_table)
+                self.nodes.add(edge.source)  # Заменили edge.from_table на edge.source
                 op = edge.op
                 op_name = type(op).__name__
                 op_color = self.COLORS.get(type(op), "gray")
@@ -104,12 +104,13 @@ class GraphStorage:
                 elif isinstance(op, Update):
                     edge_data["operation"] = "Update"
 
-                # Проверяем, существует ли уже ребро между from_table и to_table
+                # Проверяем, существует ли уже ребро между source и to_table
                 existing_edge = next(
                     (
                         (u, v, d)
                         for u, v, d in self.edges
-                        if u == edge.from_table and v == to_table
+                        if u == edge.source
+                        and v == to_table  # Заменили edge.from_table на edge.source
                     ),
                     None,
                 )
@@ -129,9 +130,13 @@ class GraphStorage:
                         existing_op, 0
                     ):
                         self.edges.remove(existing_edge)
-                        self.edges.append((edge.from_table, to_table, edge_data))
+                        self.edges.append(
+                            (edge.source, to_table, edge_data)
+                        )  # Заменили edge.from_table на edge.source
                 else:
-                    self.edges.append((edge.from_table, to_table, edge_data))
+                    self.edges.append(
+                        (edge.source, to_table, edge_data)
+                    )  # Заменили edge.from_table на edge.source
         logger.info(f"Added {len(dependencies)} dependencies")
 
     def clear(self):

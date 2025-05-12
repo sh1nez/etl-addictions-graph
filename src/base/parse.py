@@ -316,29 +316,6 @@ class SqlAst:
                 recursive_edge.is_recursive = True  # Mark edge as recursive
                 dependencies[cte_name].add(recursive_edge)
 
-    def _process_with_statement(self, statement, to_table, dependencies):
-        """Process a WITH statement or a statement containing a WITH clause."""
-        with_clause = (
-            statement if isinstance(statement, With) else statement.args["with"]
-        )
-        main_query = (
-            statement.args.get("this") if isinstance(statement, With) else statement
-        )
-
-        # Process each CTE
-        if "expressions" in with_clause.args:
-            for cte in with_clause.args["expressions"]:
-                if isinstance(cte, CTE):
-                    cte_name = cte.args["alias"].args["this"]
-                    cte_definition = cte.args["this"]
-
-                    # Process the CTE definition
-                    if cte_definition:
-                        # Add dependency from CTE to the main query
-                        if isinstance(main_query, Select):
-                            cte_edge = Edge(cte_name, to_table, main_query)
-                            dependencies[to_table].add(cte_edge)
-
     def _process_statement_tree(self, statement, to_table, dependencies):
         """Recursively process a query and its subqueries to extract dependencies."""
         try:
@@ -371,31 +348,16 @@ class SqlAst:
                         and current_statement.args["this"] is not None
                     ):
                         from_table = self.get_table_name(current_statement.args["this"])
-                        # Проверяем, есть ли уже зависимость между from_table и to_table
-                        existing_edge = next(
-                            (
-                                edge
-                                for edge in dependencies[current_to_table]
-                                if edge.from_table == from_table
-                            ),
-                            None,
+                        # Удаляем все существующие зависимости для этой таблицы, чтобы избежать дублирования
+                        dependencies[current_to_table] = {
+                            edge
+                            for edge in dependencies[current_to_table]
+                            if edge.source != from_table
+                        }
+                        # Добавляем зависимость с операцией Update
+                        dependencies[current_to_table].add(
+                            Edge(from_table, current_to_table, current_statement)
                         )
-                        if existing_edge:
-                            # Если зависимость уже существует, обновляем operation, если текущая операция более приоритетная
-                            if existing_edge.op.__class__.__name__ in (
-                                "Table",
-                                "Reference",
-                            ):
-                                dependencies[current_to_table].remove(existing_edge)
-                                dependencies[current_to_table].add(
-                                    Edge(
-                                        from_table, current_to_table, current_statement
-                                    )
-                                )
-                        else:
-                            dependencies[current_to_table].add(
-                                Edge(from_table, current_to_table, current_statement)
-                            )
                 elif (
                     "from" in current_statement.args
                     and current_statement.args["from"] is not None
@@ -406,21 +368,19 @@ class SqlAst:
                         (
                             edge
                             for edge in dependencies[current_to_table]
-                            if edge.from_table == from_table
+                            if edge.source == from_table
                         ),
                         None,
                     )
-                    if existing_edge:
-                        # Если зависимость уже существует, пропускаем добавление, чтобы избежать дублирования
-                        return
-                    if isinstance(current_statement, Select):
-                        dependencies[current_to_table].add(
-                            Edge(from_table, current_to_table, current_statement)
-                        )
-                    else:
-                        dependencies[current_to_table].add(
-                            Edge(from_table, current_to_table, current_statement)
-                        )
+                    if not existing_edge:
+                        if isinstance(current_statement, Select):
+                            dependencies[current_to_table].add(
+                                Edge(from_table, current_to_table, current_statement)
+                            )
+                        else:
+                            dependencies[current_to_table].add(
+                                Edge(from_table, current_to_table, current_statement)
+                            )
 
                 # Обрабатываем операции MERGE
                 if isinstance(current_statement, Merge):
@@ -435,7 +395,7 @@ class SqlAst:
                             (
                                 edge
                                 for edge in dependencies[current_to_table]
-                                if edge.from_table == using_table
+                                if edge.source == using_table
                             ),
                             None,
                         )
@@ -465,7 +425,7 @@ class SqlAst:
                                 (
                                     edge
                                     for edge in dependencies[current_to_table]
-                                    if edge.from_table == join_table
+                                    if edge.source == join_table
                                 ),
                                 None,
                             )
@@ -535,7 +495,7 @@ class SqlAst:
             process_recursive(statement, to_table)
 
         except Exception as e:
-            print(f"Error processing statement tree: {e}")
+            logger.error(f"Error processing statement tree: {e}")
 
     def _handle_cte_references(self, statement, to_table, dependencies):
         """Handle references to CTEs within a statement."""
