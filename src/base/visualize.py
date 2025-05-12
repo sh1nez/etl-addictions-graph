@@ -24,9 +24,11 @@ class GraphVisualizer:
         title: Optional[str] = None,
         save_path: Optional[str] = None,
         figsize: tuple = (20, 16),
-        seed: Optional[int] = 42,
         central_spread: float = 2.0,
         peripheral_spread: float = 1.5,
+        transform_spread: float = 0.3,
+        transform_node_color: str = "lightcoral",
+        mode: Optional[str] = "full",
     ):
         """Визуализирует граф зависимостей и отображает/сохраняет результат.
 
@@ -57,9 +59,9 @@ class GraphVisualizer:
             return
 
         # Создаем направленный мультиграф
-        G = nx.MultiDiGraph()
-        G.add_nodes_from(storage.nodes)
-        G.add_edges_from(
+        G_full = nx.MultiDiGraph()
+        G_full.add_nodes_from(storage.nodes)
+        G_full.add_edges_from(
             (
                 u,
                 v,
@@ -71,58 +73,106 @@ class GraphVisualizer:
             for u, v, data in storage.edges
         )
         logger.debug(
-            f"Created graph with {len(G.nodes())} nodes and {len(G.edges())} edges"
+            f"Created full graph with {len(G_full.nodes())} nodes and {len(G_full.edges())} edges"
         )
 
         # Классификация узлов
         central_nodes = [
-            n for n in G.nodes() if G.in_degree(n) > 0 and G.out_degree(n) > 0
+            n
+            for n in G_full.nodes()
+            if G_full.in_degree(n) > 0 and G_full.out_degree(n) > 0
         ]
-        peripheral_nodes = [n for n in G.nodes() if n not in central_nodes]
+        peripheral_nodes = [n for n in G_full.nodes() if n not in central_nodes]
 
         # Логирование классификации
         logger.debug(
             f"Central nodes: {len(central_nodes)}, Peripheral nodes: {len(peripheral_nodes)}"
         )
 
-        # Обработка крайних случаев
-        if not central_nodes:
-            logger.warning("No central nodes found, using all nodes as central")
-            central_nodes = list(G.nodes())
-            peripheral_nodes = []
-        elif not peripheral_nodes:
-            logger.warning("No peripheral nodes found, using spring layout")
-            if seed is not None:
-                np.random.seed(seed)
-            pos = nx.spring_layout(G, k=0.2, iterations=150, seed=seed)
-        else:
-            # Начальное радиальное расположение
-            if seed is not None:
-                np.random.seed(seed)
-            pos = nx.shell_layout(G, nlist=[central_nodes, peripheral_nodes])
-
-            # Увеличение расстояния между центральными узлами
-            if len(central_nodes) > 1:
-                central_subgraph = G.subgraph(central_nodes)
-                central_pos = nx.spring_layout(
-                    central_subgraph,
-                    k=central_spread / np.sqrt(len(central_nodes)),
-                    iterations=50,
-                    seed=seed,
+        # Выбор графа в зависимости от режима
+        if mode == "transform_only":
+            if not central_nodes:
+                logger.warning("No central nodes found for transform_only mode")
+                return
+            # Фильтрация узлов: только те, у которых есть ребра с другими узлами (не self-loops)
+            valid_central_nodes = [
+                n
+                for n in central_nodes
+                if any(u != n or v != n for u, v, data in G_full.edges(n, data=True))
+            ]
+            if not valid_central_nodes:
+                logger.warning(
+                    "No central nodes with external interactions found for transform_only mode"
                 )
-                for node in central_nodes:
-                    pos[node] = central_pos[node]
+                return
+            # Создаем подграф без self-loops
+            G = nx.MultiDiGraph()
+            G.add_nodes_from(valid_central_nodes)
+            G.add_edges_from(
+                (u, v, data)
+                for u, v, data in G_full.edges(data=True)
+                if u in valid_central_nodes and v in valid_central_nodes and u != v
+            )
+            if not G.edges:
+                logger.warning(
+                    "No edges between different nodes found for transform_only mode"
+                )
+                return
+            logger.debug(
+                f"Created subgraph with {len(G.nodes())} nodes and {len(G.edges())} edges for transform_only mode"
+            )
+        elif mode == "full":
+            G = G_full
+        else:
+            logger.error(
+                f"Unknown visualization mode: {mode}. Supported modes: 'full', 'transform_only'"
+            )
+            return
 
-            # Увеличение расстояния между периферийными узлами
-            for node in peripheral_nodes:
-                x, y = pos[node]
-                norm = np.sqrt(x**2 + y**2)
-                if norm > 0:
-                    pos[node] = (x * peripheral_spread, y * peripheral_spread)
+        # Обработка расположения узлов
+        if mode == "full":
+            if not central_nodes:
+                logger.warning("No central nodes found, using all nodes as central")
+                central_nodes = list(G.nodes())
+                peripheral_nodes = []
+            if not peripheral_nodes:
+                logger.warning("No peripheral nodes found, using spring layout")
+                np.random.seed(42)  # Статичный seed
+                pos = nx.spring_layout(G, k=0.2, iterations=150, seed=42)
+            else:
+                # Начальное радиальное расположение
+                np.random.seed(42)  # Статичный seed
+                pos = nx.shell_layout(G, nlist=[central_nodes, peripheral_nodes])
+
+                # Увеличение расстояния между центральными узлами
+                if len(central_nodes) > 1:
+                    central_subgraph = G.subgraph(central_nodes)
+                    central_pos = nx.spring_layout(
+                        central_subgraph,
+                        k=central_spread / np.sqrt(len(central_nodes)),
+                        iterations=50,
+                        seed=42,  # Статичный seed
+                    )
+                    for node in central_nodes:
+                        pos[node] = central_pos[node]
+
+                # Увеличение расстояния между периферийными узлами
+                for node in peripheral_nodes:
+                    x, y = pos[node]
+                    norm = np.sqrt(x**2 + y**2)
+                    if norm > 0:
+                        pos[node] = (x * peripheral_spread, y * peripheral_spread)
+        else:  # mode == "transform_only"
+            # Настройка расположения для transform_only
+            np.random.seed(42)  # Статичный seed
+            pos = nx.spring_layout(G, k=transform_spread, iterations=150, seed=42)
 
         # Настройка визуальных параметров
         node_sizes = [1200 if n in central_nodes else 800 for n in G.nodes()]
-        node_colors = ["lightblue" for n in G.nodes()]  # Восстановлен изначальный цвет
+        node_colors = [
+            transform_node_color if mode == "transform_only" else "lightblue"
+            for n in G.nodes()
+        ]
         edge_colors = [data["color"] for _, _, data in G.edges(data=True)]
         edge_labels = {(u, v): data["operation"] for u, v, data in G.edges(data=True)}
 

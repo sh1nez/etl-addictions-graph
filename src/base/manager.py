@@ -9,25 +9,9 @@ from logger_config import logger
 
 
 class GraphManager:
-    """Управляет процессом парсинга SQL, хранением зависимостей и визуализацией графов.
-
-    Поддерживает два режима работы:
-        - Режим таблиц (по умолчанию): использует GraphStorage и GraphVisualizer.
-        - Режим колонок (column_mode=True): использует ColumnStorage и ColumnVisualizer.
-
-    Attributes:
-        storage (Union[GraphStorage, ColumnStorage]): Хранилище зависимостей.
-        visualizer (Union[GraphVisualizer, ColumnVisualizer]): Генератор графов.
-        parser (DirectoryParser): Парсер для обработки директорий с SQL-файлами."""
+    """Class for managing graph building and visualization components."""
 
     def __init__(self, column_mode=False, operators=None):
-        """Инициализирует компоненты на основе выбранного режима.
-
-        Args:
-            column_mode (bool): Если True, активирует режим работы с колонками. По умолчанию False.
-            operators (Optional[List[str]]): Фильтр для операторов (например, ['JOIN', 'WHERE']).
-        """
-
         self.storage = GraphStorage() if not column_mode else ColumnStorage()
         self.visualizer = GraphVisualizer() if not column_mode else ColumnVisualizer()
         self.parser = DirectoryParser(SqlAst)
@@ -36,38 +20,12 @@ class GraphManager:
         logger.debug("GraphManager initialized")
 
     def process_sql(self, sql_code: str) -> List[str]:
-        """Парсит SQL-код, извлекает зависимости и возвращает корректировки.
-
-        Args:
-            sql_code (str): SQL-запрос для анализа.
-
-        Returns:
-            List[str]: Список предупреждений или предложений по исправлению.
-
-        Example:
-            >>> manager.process_sql("SELECT * FROM users")
-            ['WARNING: Missing schema prefix in table "users"']
-        """
-
         ast = SqlAst(sql_code, sep_parse=True)
         self.storage.add_dependencies(ast.get_dependencies())
         logger.info(f"Processed SQL code: {len(ast.get_corrections())} corrections")
         return ast.get_corrections()
 
     def process_directory(self, directory_path: str) -> List[Tuple[str, List[str]]]:
-        """Обрабатывает все SQL-файлы в указанной директории.
-
-        Args:
-            directory_path (str): Путь к директории с SQL-файлами.
-
-        Returns:
-            List[Tuple[str, List[str]]]:
-                Список кортежей вида (путь_к_файлу, корректировки_для_файла).
-
-        Example:
-            >>> manager.process_directory("/data/sql")
-            [("/data/sql/query1.sql", ['WARNING: Ambiguous column "id"'])]
-        """
         results = []
         parse_results = self.parser.parse_directory(directory_path)
         for dependencies, corrections, file_path in parse_results:
@@ -77,14 +35,6 @@ class GraphManager:
         logger.info(f"Processed directory: {len(results)} files")
         return results
 
-    def visualize(self, title: Optional[str] = None):
-        """Генерирует графическое представление зависимостей.
-
-        Args:
-            title (Optional[str]): Заголовок графа. Если не указан, используется значение по умолчанию.
-
-        Example:
-            >>> manager.visualize(title="Data Pipeline")
-        """
-        self.visualizer.render(self.storage, title)
+    def visualize(self, title: Optional[str] = None, mode: str = "full"):
+        self.visualizer.render(self.storage, title, mode=mode)
         logger.info("Visualization completed successfully")
