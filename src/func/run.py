@@ -1,4 +1,6 @@
-from func.buff_tables import run
+import os
+from func.buff_tables import NewBuffGraphManager, BufferTableGraphStorage
+from logger_config import logger
 
 
 def process_args(args):
@@ -21,25 +23,40 @@ def process_args(args):
     Вызывает:
         func.buff_tables.run() для выполнения основной логики.
     """
-    print("Functional mode started with arguments:")
-    print(
-        f"  Directory: {args.directory_path}"
-        if args.directory_path
-        else f"  SQL code: {args.sql_code}"
-    )
-    print(f"  Separate graphs: {args.separate_graph}")
-
-    run()
-
-
-def main():
-    """Main entry point for script execution.
-
-    Designed to be invoked when running the module directly.
-    Executes the core application logic by calling the buff_tables module's run() function.
-
-    Example:
-        >>> python -m run
-    """
-
-    run()
+    manager = NewBuffGraphManager()
+    separate = args.separate_graph.lower() == "true"
+    if args.sql_code:
+        sql_code = args.sql_code
+        corrections = manager.process_sql(sql_code)
+        if corrections:
+            print("\nCorrections made:")
+            for i, correction in enumerate(corrections, 1):
+                print(f"{i}. {correction}")
+        manager.visualize("Dependencies Graph")
+    else:
+        if separate:
+            parse_results = manager.parser.parse_directory(
+                args.directory_path, sep_parse=True
+            )
+            for dependencies, corrections, file_path in parse_results:
+                logger.debug(f"\nFile: {file_path}")
+                if corrections:
+                    logger.info("Corrections made:")
+                    for i, correction in enumerate(corrections, 1):
+                        logger.info(f"{i}. {correction}")
+                temp_storage = BufferTableGraphStorage()
+                temp_storage.add_dependencies(dependencies)
+                manager.visualizer.render(
+                    temp_storage,
+                    f"Dependencies for {os.path.basename(file_path)}",
+                )
+        else:
+            results = manager.process_directory(args.directory_path)
+            for file_path, corrections in results:
+                logger.debug(f"\nFile: {file_path}")
+                if corrections:
+                    logger.info("Corrections made:")
+                    for i, correction in enumerate(corrections, 1):
+                        logger.info(f"{i}. {correction}")
+            manager.visualize("Full Dependencies Graph")
+            return
