@@ -26,9 +26,37 @@ class BuffWrite:
 
 
 class GraphStorage:
-    """Class for storing dependency graph data."""
+    """Хранилище данных графа зависимостей между SQL-сущностями.
 
-    COLORS = {
+    Attributes:
+
+        nodes (set): Множество узлов графа (имена таблиц/сущностей).
+        edges (list): Список рёбер графа в формате (источник, цель, метаданные).
+        operator_filter (set): Фильтр типов операторов для отображения.
+
+        COLORS (dict): Сопоставление типов операторов с цветами для визуализации.
+            Пример: `{Insert: "red", Select: "purple"}`
+
+            **Важные ключи**:
+                - `Insert`: Красный
+                - `Select`: Фиолетовый
+                - `Join`: Оранжевый
+
+        OPERATOR_MAP (dict): Соответствие строковых имен операторов их классам.
+            Пример: `{"INSERT": Insert, "SELECT": Select}`
+
+            **Поддерживаемые операторы**:
+                - "INSERT", "UPDATE", "DELETE",
+                - "SELECT", "CREATE", "ALTER",
+                - "DROP", "MERGE", "JOIN", "TABLE"
+
+    Example:
+        >>> storage = GraphStorage()
+        >>> storage.set_operator_filter("SELECT,INSERT")
+        >>> storage.add_dependencies(dependencies)
+    """
+
+    COLORS = {  #: :no-index:
         Insert: "red",
         Update: "green",
         Delete: "blue",
@@ -38,9 +66,9 @@ class GraphStorage:
         Table: "cyan",
         BuffWrite: "green",
         BuffRead: "blue",
-    }
+    }  #: :meta private:
 
-    OPERATOR_MAP = {
+    OPERATOR_MAP = {  #: :no-index:
         "INSERT": Insert,
         "UPDATE": Update,
         "DELETE": Delete,
@@ -51,21 +79,24 @@ class GraphStorage:
         "MERGE": Merge,
         "JOIN": Join,
         "TABLE": Table,
-    }
+    }  #: :meta private:
 
     def __init__(self):
+        """Инициализирует хранилище с пустыми данными."""
         self.nodes = set()
         self.edges = []
         self.operator_filter = None
         logger.debug("GraphStorage initialized")
 
     def set_operator_filter(self, operators: Optional[str] = None):
-        """
-        Set which SQL operators should be displayed in the graph.
+        """Устанавливает фильтр отображаемых операторов.
 
         Args:
-            operators: Comma-separated string of operator names (e.g., 'SELECT,INSERT,UPDATE')
-                      If None, all operators will be shown.
+            operators (str, optional): Строка с операторами через запятую.
+                Пример: "SELECT,INSERT". Если None, фильтр отключается.
+
+        Example:
+            >>> storage.set_operator_filter("UPDATE,DELETE")
         """
         if not operators:
             self.operator_filter = None
@@ -85,6 +116,17 @@ class GraphStorage:
         logger.info(f"Operator filter set to: {', '.join(operator_names)}")
 
     def add_dependencies(self, dependencies: defaultdict):
+        """Добавляет зависимости в хранилище.
+
+        Args:
+            dependencies (defaultdict): Зависимости в формате:
+                {цель: [Edge(source, target, op), ...]}
+
+        Example:
+            >>> dependencies = defaultdict(set)
+            >>> dependencies["table1"].add(Edge("table2", "table1", Insert()))
+            >>> storage.add_dependencies(dependencies)
+        """
         for to_table, edges in dependencies.items():
             self.nodes.add(to_table)
             for edge in edges:
@@ -140,15 +182,23 @@ class GraphStorage:
         logger.info(f"Added {len(dependencies)} dependencies")
 
     def clear(self):
+        """Очищает все данные хранилища.
+
+        Example:
+            >>> storage.clear()
+        """
         self.nodes.clear()
         self.edges.clear()
         logger.debug("GraphStorage cleared")
 
     def get_filtered_nodes_edges(self):
-        """
-        Returns nodes and edges after applying the operator filter.
-        This is useful when we need filtered data but don't want to modify
-        the original storage.
+        """Возвращает отфильтрованные узлы и рёбра.
+
+        Returns:
+            Tuple[set, list]: (узлы, рёбра) после применения фильтра.
+
+        Example:
+            >>> nodes, edges = storage.get_filtered_nodes_edges()
         """
         if not self.operator_filter:
             return self.nodes, self.edges
@@ -174,6 +224,20 @@ class GraphStorage:
 
 
 class Edge:
+    """Представляет ребро графа зависимостей между двумя сущностями.
+
+    Attributes:
+        source (str): Источник зависимости (таблица/сущность).
+        target (str): Цель зависимости.
+        op (Union[DML, Select]): Операция, вызывающая зависимость.
+        is_internal_update (bool): Флаг внутреннего обновления.
+        is_recursive (bool): Флаг рекурсивной зависимости.
+
+    Example:
+        >>> edge = Edge("users", "orders", Insert())
+        >>> edge.is_recursive = True
+    """
+
     def __init__(
         self,
         from_table: str,
@@ -181,6 +245,14 @@ class Edge:
         op: Union[DML, Select],
         is_internal_update=False,
     ):
+        """Инициализирует ребро зависимости.
+
+        Args:
+            from_table (str): Источник зависимости.
+            to_table (str): Цель зависимости.
+            op (Union[DML, Select]): Операция (например, Insert, Select).
+            is_internal_update (bool, optional): Внутреннее обновление. По умолчанию False.
+        """
         self.source = from_table  # Изменяем имя атрибута для согласованности
         self.target = to_table  # Изменяем имя атрибута для согласованности
         self.op = op
@@ -189,6 +261,16 @@ class Edge:
         logger.debug(f"Edge created: {from_table} -> {to_table}")
 
     def __repr__(self):
+        """Возвращает строковое представление ребра.
+
+        Returns:
+            str: Описание ребра в формате:
+                'Edge(source -> target, операция, статус)'
+
+        Example:
+            >>> print(Edge("a", "b", Insert()))
+            Edge(a -> b, Insert, normal)
+        """
         op_type = type(self.op).__name__
         status = "internal" if self.is_internal_update else "normal"
         recursive_status = " (recursive)" if self.is_recursive else ""

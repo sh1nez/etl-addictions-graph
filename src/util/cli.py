@@ -2,7 +2,37 @@ import argparse
 
 
 def parse_arguments():
-    """Parses command line arguments"""
+    """Парсит и валидирует аргументы командной строки для инструмента анализа SQL.
+
+    Конфигурирует парсер аргументов с:
+        - Обязательным выбором режима работы
+        - Взаимоисключающими источниками данных (директория или сырой SQL-код)
+        - Опциями настройки вывода
+
+    Возвращает:
+        argparse.Namespace: Объект с аргументами командной строки.
+
+            Ожидаемые атрибуты:
+                - mode (str): Выбранный режим работы
+                - directory_path (str|None): Путь к директории с SQL-файлами
+                - sql_code (str|None): Строка с SQL-кодом
+                - separate_graph (str): Режим отображения графиков
+                - operators (str|None): Фильтр SQL-операторов
+
+    Примеры использования:
+        >>> python cli.py --mode functional --directory_path ./sql --separate_graph true
+        >>> python cli.py --mode field --sql_code "SELECT * FROM table" --operators "SELECT,JOIN"
+
+    Примечания:
+        - Режимы работы:
+            * table: Анализ на уровне таблиц
+            * field: Анализ связей между колонками
+            * functional: Полное построение зависимостей
+        - Требования к директории:
+            * Должна содержать .sql файлы
+            * Минимум 1 валидный SQL-файл
+        - SQL-код должен быть синтаксически корректным
+    """
     parser = argparse.ArgumentParser(
         description="SQL Syntax Corrector and Dependency Analyzer"
     )
