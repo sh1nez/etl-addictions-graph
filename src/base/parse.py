@@ -354,7 +354,10 @@ class SqlAst:
                     # For INSERT...SELECT
                     elif isinstance(statement.args.get("expression"), Select):
                         self._process_statement_tree(
-                            statement.args["expression"], to_table, dependencies
+                            statement.args["expression"],
+                            to_table,
+                            dependencies,
+                            statement,
                         )
                 # Process WITH clauses (Common Table Expressions)
                 if (
@@ -421,7 +424,9 @@ class SqlAst:
                             cte_edge = Edge(cte_name, to_table, main_query)
                             dependencies[to_table].add(cte_edge)
 
-    def _process_statement_tree(self, statement, to_table, dependencies):
+    def _process_statement_tree(
+        self, statement, to_table, dependencies, original_statement=None
+    ):
         """Рекурсивно обрабатывает узлы AST для извлечения зависимостей.
 
         Args:
@@ -429,6 +434,7 @@ class SqlAst:
             to_table: Целевая таблица текущего запроса.
             dependencies: Граф зависимостей для заполнения.
         """
+        print(f"Processing statement tree: {statement}")
         try:
             # Skip if statement is None
             if statement is None:
@@ -442,7 +448,11 @@ class SqlAst:
                 from_table = self.get_table_name(statement.args["from"])
                 # Add dependency from main table to result
                 if isinstance(statement, Select):
-                    dependencies[to_table].add(Edge(from_table, to_table, statement))
+                    if original_statement is not None:
+                        dependencies[to_table].add(
+                            Edge(from_table, to_table, original_statement)
+                        )
+                    dependencies[to_table].add(Edge(from_table, to_table))
                 else:
                     # For data modification operations (DML)
                     dependencies[to_table].add(Edge(from_table, to_table, statement))
