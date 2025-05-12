@@ -16,11 +16,10 @@ class ColumnVisualizer(GraphVisualizer):
         title: Optional[str] = None,
         save_path: Optional[str] = None,
         figsize: tuple = (20, 16),
-        seed: Optional[int] = 42,
         central_spread: float = 2.0,
         peripheral_spread: float = 1.5,
-        transform_spread: float = 7,  # Новый параметр для transform_only
-        transform_node_color: str = "lightcoral",  # Новый параметр для цвета узлов
+        transform_spread: float = 0.3,
+        transform_node_color: str = "lightcoral",
         mode: Optional[str] = "full",
     ):
         if not storage.nodes:
@@ -60,9 +59,32 @@ class ColumnVisualizer(GraphVisualizer):
             if not central_nodes:
                 logger.warning("No central nodes found for transform_only mode")
                 return
-            G = G_full.subgraph(central_nodes).copy()
+            # Фильтрация узлов: только те, у которых есть ребра с другими узлами (не self-loops)
+            valid_central_nodes = [
+                n
+                for n in central_nodes
+                if any(u != n or v != n for u, v, data in G_full.edges(n, data=True))
+            ]
+            if not valid_central_nodes:
+                logger.warning(
+                    "No central nodes with external interactions found for transform_only mode"
+                )
+                return
+            # Создаем подграф без self-loops
+            G = nx.MultiDiGraph()
+            G.add_nodes_from(valid_central_nodes)
+            G.add_edges_from(
+                (u, v, data)
+                for u, v, data in G_full.edges(data=True)
+                if u in valid_central_nodes and v in valid_central_nodes and u != v
+            )
+            if not G.edges:
+                logger.warning(
+                    "No edges between different nodes found for transform_only mode"
+                )
+                return
             logger.debug(
-                f"Created subgraph with {len(G.nodes())} nodes for transform_only mode"
+                f"Created subgraph with {len(G.nodes())} nodes and {len(G.edges())} edges for transform_only mode"
             )
         elif mode == "full":
             G = G_full
@@ -79,12 +101,10 @@ class ColumnVisualizer(GraphVisualizer):
                 peripheral_nodes = []
             if not peripheral_nodes:
                 logger.warning("No peripheral nodes found, using spring layout")
-                if seed is not None:
-                    np.random.seed(seed)
-                pos = nx.spring_layout(G, k=0.2, iterations=150, seed=seed)
+                np.random.seed(42)  # Статичный seed
+                pos = nx.spring_layout(G, k=0.2, iterations=150, seed=42)
             else:
-                if seed is not None:
-                    np.random.seed(seed)
+                np.random.seed(42)  # Статичный seed
                 pos = nx.shell_layout(G, nlist=[central_nodes, peripheral_nodes])
 
                 if len(central_nodes) > 1:
@@ -93,7 +113,7 @@ class ColumnVisualizer(GraphVisualizer):
                         central_subgraph,
                         k=central_spread / np.sqrt(len(central_nodes)),
                         iterations=50,
-                        seed=seed,
+                        seed=42,  # Статичный seed
                     )
                     for node in central_nodes:
                         pos[node] = central_pos[node]
@@ -105,9 +125,8 @@ class ColumnVisualizer(GraphVisualizer):
                         pos[node] = (x * peripheral_spread, y * peripheral_spread)
         else:  # mode == "transform_only"
             # Настройка расположения для transform_only
-            if seed is not None:
-                np.random.seed(seed)
-            pos = nx.spring_layout(G, k=transform_spread, iterations=150, seed=seed)
+            np.random.seed(42)  # Статичный seed
+            pos = nx.spring_layout(G, k=transform_spread, iterations=150, seed=42)
 
         node_sizes = [1200 if n in central_nodes else 800 for n in G.nodes()]
         node_colors = [
