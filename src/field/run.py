@@ -44,7 +44,9 @@ def process_args(args):
         - Использует ColumnStorage для хранения зависимостей колонок
     """
 
-    manager = GraphManager(column_mode=True, operators=args.operators)
+    manager = GraphManager(
+        column_mode=True, operators=args.operators, ignore_io=args.ignore_io
+    )
     separate = args.separate_graph.lower() == "true"
     if args.sql_code:
         sql_code = args.sql_code
@@ -66,7 +68,7 @@ def process_args(args):
                     logger.info("Corrections made:")
                     for i, correction in enumerate(corrections, 1):
                         logger.info(f"{i}. {correction}")
-                temp_storage = ColumnStorage()
+                temp_storage = ColumnStorage(ignore_io=args.ignore_io)
                 temp_storage.add_dependencies(dependencies)
                 manager.visualizer.render(
                     temp_storage,
