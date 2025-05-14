@@ -43,7 +43,7 @@ def process_args(args):
         - INFO: Выводит список корректировок SQL
         - DEBUG: Детали обработки файлов
     """
-    manager = GraphManager(operators=args.operators)
+    manager = GraphManager(operators=args.operators, ignore_io=args.ignore_io)
     separate = args.separate_graph.lower() == "true"
 
     if args.sql_code:
@@ -66,7 +66,7 @@ def process_args(args):
                     logger.info("Corrections made:")
                     for i, correction in enumerate(corrections, 1):
                         logger.info(f"{i}. {correction}")
-                temp_storage = GraphStorage()
+                temp_storage = GraphStorage(args.ignore_io)
                 temp_storage.add_dependencies(dependencies)
                 manager.visualizer.render(
                     temp_storage,

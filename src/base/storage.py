@@ -81,11 +81,12 @@ class GraphStorage:
         "TABLE": Table,
     }  #: :meta private:
 
-    def __init__(self):
+    def __init__(self, ignore_io=False):
         """Инициализирует хранилище с пустыми данными."""
         self.nodes = set()
         self.edges = []
         self.operator_filter = None
+        self.ignore_io = ignore_io
         logger.debug("GraphStorage initialized")
 
     def set_operator_filter(self, operators: Optional[str] = None):
@@ -128,8 +129,12 @@ class GraphStorage:
             >>> storage.add_dependencies(dependencies)
         """
         for to_table, edges in dependencies.items():
+            if self.ignore_io and "unknown" in to_table:
+                continue
             self.nodes.add(to_table)
             for edge in edges:
+                if self.ignore_io and "unknown" in edge.source:
+                    continue
                 if (
                     hasattr(self, "operator_filter")  # Check if attribute exists
                     and self.operator_filter is not None
