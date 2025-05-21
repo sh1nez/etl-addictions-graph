@@ -20,17 +20,21 @@ class GraphManager:
         visualizer (Union[GraphVisualizer, ColumnVisualizer]): Генератор графов.
         parser (DirectoryParser): Парсер для обработки директорий с SQL-файлами."""
 
-    def __init__(self, column_mode=False, operators=None):
+    def __init__(self, column_mode=False, operators=None, ignore_io=False):
         """Инициализирует компоненты на основе выбранного режима.
 
         Args:
             column_mode (bool): Если True, активирует режим работы с колонками. По умолчанию False.
             operators (Optional[List[str]]): Фильтр для операторов (например, ['JOIN', 'WHERE']).
         """
-
-        self.storage = GraphStorage() if not column_mode else ColumnStorage()
+        self.ignore_io = ignore_io
+        self.storage = (
+            GraphStorage(ignore_io=self.ignore_io)
+            if not column_mode
+            else ColumnStorage(ignore_io=self.ignore_io)
+        )
         self.visualizer = GraphVisualizer() if not column_mode else ColumnVisualizer()
-        self.parser = DirectoryParser(SqlAst)
+        self.parser = DirectoryParser(SqlAst, self.ignore_io)
         if operators:
             self.storage.set_operator_filter(operators)
         logger.debug("GraphManager initialized")
@@ -49,7 +53,7 @@ class GraphManager:
             ['WARNING: Missing schema prefix in table "users"']
         """
 
-        ast = SqlAst(sql_code, sep_parse=True)
+        ast = SqlAst(sql_code, sep_parse=True, ignore_io=self.ignore_io)
         self.storage.add_dependencies(ast.get_dependencies())
         logger.info(f"Processed SQL code: {len(ast.get_corrections())} corrections")
         return ast.get_corrections()

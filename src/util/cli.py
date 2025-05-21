@@ -66,4 +66,10 @@ def parse_arguments():
         help="Comma-separated list of SQL operators to display (e.g., 'SELECT,INSERT,UPDATE'). "
         "If not specified, all operators are shown.",
     )
+    parser.add_argument(
+        "--ignore_io",
+        choices=["true", "false"],
+        default="false",
+        help="Don't parse and show Input/Output/Unknown nodes.",
+    )
     return parser.parse_args()

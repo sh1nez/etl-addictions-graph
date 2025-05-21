@@ -46,7 +46,7 @@ class SqlAst:
     _transfer_id = 0
     _cte_id = 0  # Counter for CTE nodes
 
-    def __init__(self, sql_code: str, sep_parse: bool = False):
+    def __init__(self, sql_code: str, sep_parse: bool = False, ignore_io=False):
         """Инициализирует парсер SQL и запускает анализ кода.
 
         Args:
@@ -72,6 +72,7 @@ class SqlAst:
         self.unknown_id = SqlAst._unknown_id
         self.cte_id = SqlAst._cte_id
         self.sep_parse = sep_parse
+        self.ignore_io = ignore_io
         self._statement_count = 0
         self.table_schema = {}  # Store table schema information
 
@@ -311,6 +312,8 @@ class SqlAst:
 
                 # For regular SELECT statements without an explicit target
                 else:
+                    if self.ignore_io:
+                        continue
                     to_table = f"result {self._get_output_id()}"
                 if isinstance(statement, Delete):
                     # Process the table being deleted from
@@ -347,6 +350,8 @@ class SqlAst:
                 if isinstance(statement, Insert):
                     # For INSERT...VALUES
                     if isinstance(statement.args.get("expression"), Values):
+                        if self.ignore_io:
+                            continue
                         input_node = f"input {self._get_input_id()}"
                         dependencies[to_table].add(
                             Edge(input_node, to_table, statement)
@@ -934,13 +939,14 @@ class DirectoryParser:
         >>> results[0]  # (dependencies, corrections, "/data/sql/query.sql")
     """
 
-    def __init__(self, sql_ast_cls=SqlAst):
+    def __init__(self, sql_ast_cls=SqlAst, ignore_io=False):
         """Инициализирует парсер директорий.
 
         Args:
             sql_ast_cls (type): Класс для анализа SQL. Можно заменить на кастомную реализацию.
         """
         self.sql_ast_cls = sql_ast_cls
+        self.ignore_io = ignore_io
 
     def parse_directory(
         self, directory: str, sep_parse: bool = False
@@ -984,7 +990,9 @@ class DirectoryParser:
                     try:
                         with open(file_path, "r", encoding="utf-8") as f:
                             sql_code = f.read()
-                            ast = self.sql_ast_cls(sql_code, sep_parse)
+                            ast = self.sql_ast_cls(
+                                sql_code, sep_parse, ignore_io=self.ignore_io
+                            )
                             results.append(
                                 (
                                     ast.get_dependencies(),
