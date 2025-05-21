@@ -77,7 +77,9 @@ class GraphManager:
         logger.info(f"Processed directory: {len(results)} files")
         return results
 
-    def visualize(self, title: Optional[str] = None):
+    def visualize(
+        self, title: Optional[str] = None, storage: Optional[GraphStorage] = None
+    ):
         """Генерирует графическое представление зависимостей.
 
         Args:
@@ -86,5 +88,13 @@ class GraphManager:
         Example:
             >>> manager.visualize(title="Data Pipeline")
         """
-        self.visualizer.render(self.storage, title)
-        logger.info("Visualization completed successfully")
+        if storage is None:
+            storage = self.storage
+        try:
+            self.visualizer.render(storage, title)
+        except Exception as e:
+            logger.error(
+                f"Error visualizing graph: {e}\nYou may need to run this in an environment that supports matplotlib display."
+            )
+        else:
+            logger.info("Visualization completed successfully")
